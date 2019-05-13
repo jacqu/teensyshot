@@ -18,6 +18,46 @@ volatile bool commandSent = false;
 
 IntervalTimer timer;
 
+struct TlmData tlmData;
+
+void readTlm() {
+  noInterrupts();
+  if (isTlmAvailable()) {
+    resetTlmFlag();
+    interrupts();
+    static uint8_t bufferTlm[TLM_LENGTH];
+    while (Serial1.available() < TLM_LENGTH);
+    // noInterrupts();
+    for (int i = 0; i < TLM_LENGTH; i++) {
+      bufferTlm[i] = Serial1.read();
+    }
+    tlmData.temperature = bufferTlm[0];
+    tlmData.voltage = (bufferTlm[1] << 8) | bufferTlm[2];
+    tlmData.current = (bufferTlm[3] << 8) | bufferTlm[4];
+    tlmData.consumption = (bufferTlm[5] << 8) | bufferTlm[6];
+    tlmData.rpm = (bufferTlm[7] << 8) | bufferTlm[8];
+    tlmData.crcCheck = bufferTlm[9] == calculateCrc8(bufferTlm, TLM_LENGTH-1);
+
+    /* TODO: stat for crcError */
+    if (tlmData.crcCheck) {
+      /* no error */
+    } else {
+      /* crc error */
+    }
+    /*for (int i = 0; i < TLM_LENGTH; i++) { // for debug
+      Serial.print(bufferTlm[i]);
+      Serial.print(" ");
+    }
+    Serial.println();*/
+  } else {
+    interrupts(); 
+  }
+}
+
+uint16_t getRpm() {
+  return tlmData.rpm;
+}
+
 void startDshot() {
   setupDMA();
   delay(100);

@@ -36,36 +36,5 @@ void loop() {
     setThrottle(sentThrottle.toInt()); // updates the throttle value
   }
 
-  noInterrupts();
-  if (isTlmAvailable()) {
-    resetTlmFlag();
-    interrupts();
-    //static uint8_t bufferTlm[TLM_LENGTH];
-    while (Serial1.available() < TLM_LENGTH);
-    // noInterrupts();
-    for (int i = 0; i < TLM_LENGTH; i++) {
-      bufferTlm[i] = Serial1.read();
-    }
-    // interrupts();
-
-    /*for (int i = 0; i < TLM_LENGTH; i++) { // for debug
-      Serial.print(bufferTlm[i]);
-      Serial.print(" ");
-    }
-    Serial.println();*/
-
-    // CRC verification
-    if (bufferTlm[TLM_LENGTH-1] == calculateCrc8(bufferTlm, TLM_LENGTH-1)) {
-      //Serial.println("ok");
-    } else {
-      //Serial.println("crc error");
-      flagErr = true;
-    }
-
-  } else {
-    interrupts();
-  }
-  if (flagErr) {
-    //Serial.println("FALSE");
-  }
+  readTlm();
 }

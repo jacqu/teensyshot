@@ -23,7 +23,18 @@
 #define SEND_COMMAND_MODE 2
 #define STOP_MODE 3
 
-void startDshot(); 
+struct TlmData {
+  uint8_t temperature;
+  uint16_t voltage;
+  uint16_t current;
+  uint16_t consumption;
+  uint16_t rpm;
+  bool crcCheck;
+};
+
+void readTlm();
+uint16_t getRpm(); 
+void startDshot();
 bool isTlmAvailable();
 void resetTlmFlag();
 void armingMotor();
