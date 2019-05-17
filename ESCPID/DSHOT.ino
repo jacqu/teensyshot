@@ -40,6 +40,14 @@ const uint16_t DSHOT_bit_length   = uint64_t(F_BUS) * 1670 / 1000000000;    // D
 //  Global variables
 //
 
+// DMA FTM channel values references
+volatile uint32_t*  DSHOT_DMA_channnel_val[DSHOT_MAX_OUTPUTS] = { &FTM0_C0V,
+                                                                  &FTM0_C1V, 
+                                                                  &FTM0_C2V, 
+                                                                  &FTM0_C3V, 
+                                                                  &FTM0_C4V, 
+                                                                  &FTM0_C5V };
+
 // DMA objects
 DMAChannel          dma[DSHOT_MAX_OUTPUTS];
 
@@ -82,42 +90,20 @@ void DSHOT_init( void ) {
 
   // First DMA channel is the only one triggered by the bit clock
   dma[0].sourceBuffer( DSHOT_dma_data[0], DSHOT_DMA_LENGTH );
-  dma[0].destination( (uint16_t&) FTM0_C0V );
+  dma[0].destination( (uint16_t&) *DSHOT_DMA_channnel_val[0] );
   dma[0].triggerAtHardwareEvent( DMAMUX_SOURCE_FTM0_CH7 );
   dma[0].interruptAtCompletion( );
   dma[0].attachInterrupt( DSHOT_DMA_interrupt_routine );
   dma[0].enable( );
 
-  // Other DMA channels are trigered by the previoux DMA channel
-  dma[1].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH );
-  dma[1].destination( (uint16_t&) FTM0_C1V );
-  dma[1].triggerAtTransfersOf( dma[0] );
-  dma[1].triggerAtCompletionOf( dma[0] );
-  dma[1].enable( );
-
-  dma[2].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH );
-  dma[2].destination( (uint16_t&) FTM0_C2V );
-  dma[2].triggerAtTransfersOf( dma[1] );
-  dma[2].triggerAtCompletionOf( dma[1] );
-  dma[2].enable( );
-
-  dma[3].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH );
-  dma[3].destination( (uint16_t&) FTM0_C3V );
-  dma[3].triggerAtTransfersOf( dma[2] );
-  dma[3].triggerAtCompletionOf( dma[2] );
-  dma[3].enable( );
-
-  dma[4].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH );
-  dma[4].destination( (uint16_t&) FTM0_C4V );
-  dma[4].triggerAtTransfersOf( dma[3] );
-  dma[4].triggerAtCompletionOf( dma[3] );
-  dma[4].enable( );
-
-  dma[5].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH );
-  dma[5].destination( (uint16_t&) FTM0_C5V );
-  dma[5].triggerAtTransfersOf( dma[4] );
-  dma[5].triggerAtCompletionOf( dma[4] );
-  dma[5].enable( );
+  for ( i = 1; i < DSHOT_MAX_OUTPUTS; i++ ) {
+    // Other DMA channels are trigered by the previoux DMA channel
+    dma[i].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH );
+    dma[i].destination( (uint16_t&) *DSHOT_DMA_channnel_val[i] );
+    dma[i].triggerAtTransfersOf( dma[i-1] );
+    dma[i].triggerAtCompletionOf( dma[i-1] );
+    dma[i].enable( );
+  }
 
   // FTM0_CNSC: status and control register
   // FTM0_CNV = 0: initialize the counter channel N at 0
