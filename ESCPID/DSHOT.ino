@@ -6,7 +6,10 @@
  *  Authors:  Arda Yiğit and Jacques Gangloff
  *  Date:     May 2019
  */
- 
+
+#include <Arduino.h>
+#include "DMAChannel.h"
+
 //
 // Defines
 //
@@ -14,6 +17,9 @@
 #define DSHOT_MAX_OUTPUTS         6             // Maximum number of DSHOT outputs
 #define DSHOT_DMA_LENGTH          18            // Number of steps of one DMA sequence (the two last values are zero)
 #define DSHOT_DSHOT_LENGTH        16            // Number of bits in a DSHOT sequence
+#define DSHOT_BT_DURATION         1670          // Duration of 1 DSHOT600 bit in ns
+#define DSHOT_LP_DURATION         1250          // Duration of a DSHOT600 long pulse in ns
+#define DSHOT_SP_DURATION         625           // Duration of a DSHOT600 short pulse in ns
 
 //
 //  Constants
@@ -32,9 +38,9 @@
 //          625ns
 //
 // On the teensy 3.5, F_BUS == 60000000
-const uint16_t DSHOT_short_pulse  = uint64_t(F_BUS) * 625 / 1000000000;     // DSHOT short pulse duration (nb of F_BUS periods)
-const uint16_t DSHOT_long_pulse   = uint64_t(F_BUS) * 1250 / 1000000000;    // DSHOT long pulse duration (nb of F_BUS periods)
-const uint16_t DSHOT_bit_length   = uint64_t(F_BUS) * 1670 / 1000000000;    // DSHOT bit duration (nb of F_BUS periods)
+const uint16_t DSHOT_short_pulse  = uint64_t(F_BUS) * DSHOT_SP_DURATION / 1000000000;     // DSHOT short pulse duration (nb of F_BUS periods)
+const uint16_t DSHOT_long_pulse   = uint64_t(F_BUS) * DSHOT_LP_DURATION / 1000000000;     // DSHOT long pulse duration (nb of F_BUS periods)
+const uint16_t DSHOT_bit_length   = uint64_t(F_BUS) * DSHOT_BT_DURATION / 1000000000;     // DSHOT bit duration (nb of F_BUS periods)
 
 //
 //  Global variables
@@ -59,7 +65,7 @@ volatile uint16_t   DSHOT_dma_data[DSHOT_MAX_OUTPUTS][DSHOT_DMA_LENGTH];
 //
 void DSHOT_DMA_interrupt_routine( void ) {
   
-  dma.clearInterrupt( );
+  dma[0].clearInterrupt( );
 
   // Disable FTM0
   FTM0_SC = 0;
@@ -96,8 +102,8 @@ void DSHOT_init( void ) {
   dma[0].attachInterrupt( DSHOT_DMA_interrupt_routine );
   dma[0].enable( );
 
+  // Other DMA channels are trigered by the previoux DMA channel
   for ( i = 1; i < DSHOT_MAX_OUTPUTS; i++ ) {
-    // Other DMA channels are trigered by the previoux DMA channel
     dma[i].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH );
     dma[i].destination( (uint16_t&) *DSHOT_DMA_channnel_val[i] );
     dma[i].triggerAtTransfersOf( dma[i-1] );
@@ -136,4 +142,65 @@ void DSHOT_init( void ) {
   FTM0_MOD = DSHOT_bit_length;  // The modulo value for the FTM counter
   FTM0_CNTIN = 0;               // Counter initial value
   
+}
+
+//
+//  Send the DSHOT signal through all the configured channels
+//  cmd points to the DSHOT_MAX_OUTPUTS DSHOT commands to send
+//  Telemetry is always requested, CRC bits are added
+//
+//  Returns an error code in case of failure, 0 otherwise:
+//  -1: DMA error
+//  -2: Timeout : DMA duration is abnormally great
+//  -3: Value out of range
+//  -4: Internal error 
+//
+int DSHOT_send( uint16_t *cmd ) {
+  int       i, j;
+  uint16_t  data;
+
+  // Initialize DMA buffers
+  for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ ) {
+    
+    // Check cmd value
+    if ( cmd[i] > 2047 )
+      return -3;
+      
+    // Compute the packet to send
+    // 11 first MSB = command
+    // 12th MSB = telemetry request
+    // 4 LSB = CRC
+    data = ( cmd[i] << 5 ) | ( 1 << 4 );
+    data |= ( ( data >> 4 ) ^ ( data >> 8 ) ^ ( data >> 12 ) ) & 0x0f;
+
+    // Generate DSHOT timings corresponding to the packet
+    for ( j = 0; j < DSHOT_DSHOT_LENGTH; j++ )  {
+      if ( data & ( 1 << ( DSHOT_DSHOT_LENGTH - 1 - j ) ) )
+        DSHOT_dma_data[i][j] = DSHOT_long_pulse;
+      else
+        DSHOT_dma_data[i][j] = DSHOT_short_pulse;
+    }
+  }
+  
+  // Clear error flag on all DMA channels
+  for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ )
+    dma[i].clearError( );
+  
+  // Start DMA by activating the clock
+  // The clock is disabled again by the DMA interrupt on channel 0
+  FTM0_SC = FTM_SC_CLKS(1);
+
+  // Wait the theoretical time needed by DMA + some margin
+  delayMicroseconds( (unsigned int)( ( DSHOT_BT_DURATION * ( DSHOT_DMA_LENGTH + 5 ) ) / 1000 ) );
+
+  // Check if FMT0 was disabled by the DMA ISR
+  if ( FTM0_SC )
+    return -2;
+
+  // Check if there is a DMA error
+  for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ )
+    if ( dma[i].error( ) )
+      return -1;
+  
+  return 0;
 }
