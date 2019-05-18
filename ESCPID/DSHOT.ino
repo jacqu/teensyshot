@@ -51,7 +51,7 @@ volatile uint32_t*  DSHOT_DMA_channnel_val[DSHOT_MAX_OUTPUTS] = { &FTM0_C0V,
                                                                   &FTM0_C1V, 
                                                                   &FTM0_C2V, 
                                                                   &FTM0_C3V, 
-                                                                  &FTM0_C4V, 
+                                                                  &FTM0_C4V,
                                                                   &FTM0_C5V };
 
 // DMA objects
