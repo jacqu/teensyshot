@@ -13,7 +13,7 @@
 //  Arduino setup function
 //
 void setup() {
-  // put your setup code here, to run once:
+  // put your setup code here
 
 }
 
@@ -21,6 +21,6 @@ void setup() {
 //  Arduino main loop
 //
 void loop() {
-  // put your main code here, to run repeatedly:
+  // put your main code here
 
 }
