@@ -146,8 +146,8 @@ void DSHOT_init( void ) {
 
 //
 //  Send the DSHOT signal through all the configured channels
-//  cmd points to the DSHOT_MAX_OUTPUTS DSHOT commands to send
-//  Telemetry is always requested, CRC bits are added
+//  "cmd" points to the DSHOT_MAX_OUTPUTS DSHOT commands to send
+//  Telemetry is requested with "tlm", CRC bits are added
 //
 //  Returns an error code in case of failure, 0 otherwise:
 //  -1: DMA error
@@ -155,7 +155,7 @@ void DSHOT_init( void ) {
 //  -3: Value out of range
 //  -4: Internal error 
 //
-int DSHOT_send( uint16_t *cmd ) {
+int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
   int       i, j;
   uint16_t  data;
 
@@ -170,7 +170,7 @@ int DSHOT_send( uint16_t *cmd ) {
     // 11 first MSB = command
     // 12th MSB = telemetry request
     // 4 LSB = CRC
-    data = ( cmd[i] << 5 ) | ( 1 << 4 );
+    data = ( cmd[i] << 5 ) | ( tlm[i] << 4 );
     data |= ( ( data >> 4 ) ^ ( data >> 8 ) ^ ( data >> 12 ) ) & 0x0f;
 
     // Generate DSHOT timings corresponding to the packet
