@@ -34,28 +34,28 @@ typedef struct	{
 AWPID_STRUCT	AWPID[AWPID_MAX_NB];
 int 					awpid_nb = 0;
 
-/**************************************************************************
-*	rt_init_awpid : initialisation des parametres du PID.
-*
-*	* Nb : nombre de correcteurs
-*	* Kp : coefficient proportionnel
-*	* Ki : coefficient integrale
-*	* Kd : coefficient derive
-*	* f : pole du filtre du derivateur 
-*			( 0 < f < 1 si f = 1, annulation de l'action derivee )
-*	* Sat : valeur de la saturation (>0)   
-*
-*
-*	C(z)=Kp[ 1 + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f ) ]
-*
-**************************************************************************/
-int rt_init_awpid( 	int		Nb,
-					double	*Kp, 
-					double	*Ki,
-					double	*Kd,
-					double	*f,
-					double	*Sat
-					 )	{
+//
+//	Initialisation of the PID parametrs
+//
+//	Nb: 	number of controllers
+//	Kp: 	proportional gain
+//	Ki: 	integral gain
+//	Kd: 	derivative gain
+//	f:		derivative filter pole
+//				( 0 < f < 1, if f == 1, derivative action is cancelled)
+//	Sat:	saturation (>0)
+//
+//	Controller equation:
+//
+//	C(z)=Kp + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f )
+//
+int rt_init_awpid( 	int			Nb,
+										double	*Kp, 
+										double	*Ki,
+										double	*Kd,
+										double	*f,
+										double	*Sat
+					 					)	{
 	
 	int			i;
 	
@@ -67,83 +67,83 @@ int rt_init_awpid( 	int		Nb,
 	
 	for ( i = 0; i < Nb; i++ )	{
 		
-		/* Definition des coefficients des correcteurs */
+		// Definition of the PID tuning parameters
+		AWPID[i].Kp = 	Kp[i];
+		AWPID[i].Ki = 	Ki[i];
+		AWPID[i].Kd = 	Kd[i];
+		AWPID[i].f = 		f[i];
+		AWPID[i].Sat = 	Sat[i];
 		
-		AWPID[i].Kp = Kp[i];
-		AWPID[i].Ki = Ki[i];
-		AWPID[i].Kd = Kd[i];
-		AWPID[i].f = f[i];
-		AWPID[i].Sat = Sat[i];
+		// Initialisation of the PID intrnal variables
+		AWPID[i].u0 = 	0;
 		
-		/* Initialisation des varaibles du correcteur */
+		AWPID[i].e0 = 	0;
+		AWPID[i].e1 = 	0;
 		
-		AWPID[i].u0 = 0;
+		AWPID[i].ui0 = 	0;
+		AWPID[i].ui1 = 	0;
 		
-		AWPID[i].e0 = 0;
-		AWPID[i].e1 = 0;
-		
-		AWPID[i].ui0 = 0;
-		AWPID[i].ui1 = 0;
-		
-		AWPID[i].ud0 = 0;
-		AWPID[i].ud1 = 0;
+		AWPID[i].ud0 = 	0;
+		AWPID[i].ud1 = 	0;
 		}
 	
 	return 0;
 	}
 
-/**************************************************************************
-*	rt_awpid : calcul de la commande.
-**************************************************************************/
-int rt_control( double *Reference, double *Measurement, double *Control )	{
+//
+// Computation of the control signal
+//
+int rt_control( double *Reference, 
+								double *Measurement, 
+								double *Control )	{
 	
 	int		i;
 	
 	for ( i = 0; i < awpid_nb; i++ )	{
 		
-		/* Calcul de l'erreur */
-		
+		// Computation of the error
 		AWPID[i].e1 = AWPID[i].e0;
 		AWPID[i].e0 = Reference[i] - Measurement[i];
 		
-		/* Calcul du terme derive */
-		
+		// Computation of the derivative term
 		AWPID[i].ud1 = 	AWPID[i].ud0;
-		AWPID[i].ud0 = 	AWPID[i].f * AWPID[i].ud1
-						+ AWPID[i].Kp * AWPID[i].Kd * ( AWPID[i].e0 - AWPID[i].e1 );
+		AWPID[i].ud0 = 	AWPID[i].f * AWPID[i].ud1 +
+										AWPID[i].Kd * ( AWPID[i].e0 - AWPID[i].e1 );
 		
-		/* Calcul du terme integral avec anti-saturation */
+		// Integral term computation
 		
 		AWPID[i].ui1 = 	AWPID[i].ui0;
 		
-		/* Anti-saturation seulement s'il y a un terme intergral */
-		
+		// Anti-windup only if the integral gain is non null
 		if ( AWPID[i].Ki )	{
 		
 			AWPID[i].u0 = 	AWPID[i].Kp * AWPID[i].e0 +
-							AWPID[i].ud0 +
-							AWPID[i].ui1 + AWPID[i].Kp * AWPID[i].Ki * AWPID[i].e0;
-
+											AWPID[i].ud0 +
+											AWPID[i].ui1 + AWPID[i].Ki * AWPID[i].e0;
+			
+			// No saturation
 			if ( fabs ( AWPID[i].u0 ) <= AWPID[i].Sat )	
 				AWPID[i].ui0 = AWPID[i].ui1 + AWPID[i].Kp * AWPID[i].Ki * AWPID[i].e0;
-				
+			
+			// Upper limit saturation: recalculation of the integral term
+			// With this adjusment, the control signal equals exactly the saturation
 			if ( AWPID[i].u0 > AWPID[i].Sat )	
 				AWPID[i].ui0 = ( AWPID[i].Sat - 
 									( AWPID[i].Kp * AWPID[i].e0 + AWPID[i].ud0 ) );
-
+			
+			// Lower limit saturation: recalculation of the integral term
+			// With this adjusment, the control signal equals exactly the saturation
 			if ( AWPID[i].u0 < -AWPID[i].Sat )	
 				AWPID[i].ui0 = ( -AWPID[i].Sat - 
 									( AWPID[i].Kp * AWPID[i].e0 + AWPID[i].ud0 ) );
 			}
 			
-		/* Calcul de la commande saturee */
-		
+		// Control signal computation
 		Control[i] = 	AWPID[i].Kp * AWPID[i].e0 + 
-						AWPID[i].ud0 + 
-						AWPID[i].ui0;
+									AWPID[i].ud0 + 
+									AWPID[i].ui0;
 						
-		/* Saturation */
-		
+		// Saturation
 		if ( Control[i] > AWPID[i].Sat )
 			Control[i] = AWPID[i].Sat;
 			
@@ -153,26 +153,3 @@ int rt_control( double *Reference, double *Measurement, double *Control )	{
 	
 	return 0;
 	}
-	
-/**************************************************************************
-*	Routine appelee a l'insertion du module.
-**************************************************************************/
-int init_module( void )	{
-	
-	/* Affichage d'un message */
-	
-	printk( KERN_INFO "awpid: loaded.\n" );
-		
-    return( 0 );
-	}
-
-/**************************************************************************
-*	Routine appelee a la suppression du module.
-**************************************************************************/
-void cleanup_module( void )	{
-
-    printk( KERN_INFO "awpid: unloaded.\n" );
-	
-    return;
-	}
-	
