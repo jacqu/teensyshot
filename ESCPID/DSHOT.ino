@@ -17,6 +17,7 @@
 
 #define DSHOT_MAX_OUTPUTS         ESCPID_NB_ESC // Maximum number of DSHOT outputs
 #define DSHOT_DMA_LENGTH          18            // Number of steps of one DMA sequence (the two last values are zero)
+#define DSHOT_DMA_MARGIN					2							// Number of additional bit duration to wait until checking if DMA is over
 #define DSHOT_DSHOT_LENGTH        16            // Number of bits in a DSHOT sequence
 #define DSHOT_BT_DURATION         1670          // Duration of 1 DSHOT600 bit in ns
 #define DSHOT_LP_DURATION         1250          // Duration of a DSHOT600 long pulse in ns
@@ -192,7 +193,7 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
   FTM0_SC = FTM_SC_CLKS(1);
 
   // Wait the theoretical time needed by DMA + some margin
-  delayMicroseconds( (unsigned int)( ( DSHOT_BT_DURATION * ( DSHOT_DMA_LENGTH + 1 ) ) / 1000 ) );
+  delayMicroseconds( (unsigned int)( ( DSHOT_BT_DURATION * ( DSHOT_DMA_LENGTH + DSHOT_DMA_MARGIN ) ) / 1000 ) );
 
   // Check if FMT0 was disabled by the DMA ISR
   // Check only bits 3 and 4: non null if a clock source is set
