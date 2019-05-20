@@ -17,6 +17,7 @@
 
 #define DSHOT_MAX_OUTPUTS         ESCPID_NB_ESC // Maximum number of DSHOT outputs
 #define DSHOT_DMA_LENGTH          18            // Number of steps of one DMA sequence (the two last values are zero)
+#define DSHOT_DMA_MARGIN					2							// Number of additional bit duration to wait until checking if DMA is over
 #define DSHOT_DSHOT_LENGTH        16            // Number of bits in a DSHOT sequence
 #define DSHOT_BT_DURATION         1670          // Duration of 1 DSHOT600 bit in ns
 #define DSHOT_LP_DURATION         1250          // Duration of a DSHOT600 long pulse in ns
@@ -105,7 +106,7 @@ void DSHOT_init( void ) {
 
   // Other DMA channels are trigered by the previoux DMA channel
   for ( i = 1; i < DSHOT_MAX_OUTPUTS; i++ ) {
-    dma[i].sourceBuffer( DSHOT_dma_data[i], 2*DSHOT_DMA_LENGTH );
+    dma[i].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH * sizeof( uint16_t ) );
     dma[i].destination( (uint16_t&) *DSHOT_DMA_channnel_val[i] );
     dma[i].triggerAtTransfersOf( dma[i-1] );
     dma[i].triggerAtCompletionOf( dma[i-1] );
@@ -192,10 +193,11 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
   FTM0_SC = FTM_SC_CLKS(1);
 
   // Wait the theoretical time needed by DMA + some margin
-  delayMicroseconds( (unsigned int)( ( DSHOT_BT_DURATION * ( DSHOT_DMA_LENGTH + 1 ) ) / 1000 ) );
+  delayMicroseconds( (unsigned int)( ( DSHOT_BT_DURATION * ( DSHOT_DMA_LENGTH + DSHOT_DMA_MARGIN ) ) / 1000 ) );
 
   // Check if FMT0 was disabled by the DMA ISR
-  if ( FTM0_SC & (3 << 3)) // check only if a clock source is set
+  // Check only bits 3 and 4: non null if a clock source is set
+  if ( FTM0_SC & (3 << 3) )
     return -2;
 
   // Check if there is a DMA error
