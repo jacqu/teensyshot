@@ -9,20 +9,31 @@
 
 #include <Arduino.h>
 
+/* FOR DEBUG */
+uint16_t armingCmd[6] = {0};
+uint8_t tlm[6] = {0};
+int temp;
+/* FOR DEBUG */
+
+
 //
 //  Arduino setup function
 //
 void setup() {
-
-  // put your setup code here
-
+  Serial.begin(115200);
+  while(!Serial);
+  delay(10);
+  Serial.println("start");
+  DSHOT_init();
 }
 
 //
 //  Arduino main loop
 //
 void loop() {
-
-  // put your main code here
-
+  temp = DSHOT_send(armingCmd, tlm);
+  delay(1);
+  if (temp)
+    Serial.println(temp);
+  delay(1);
 }
