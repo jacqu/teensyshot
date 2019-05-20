@@ -114,19 +114,19 @@ void DSHOT_init( void ) {
 
   // FTM0_CNSC: status and control register
   // FTM0_CNV = 0: initialize the counter channel N at 0
-  // FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_CHIE:
-  // edge aligned PWM with high-true pulses, interrupt enable
-  FTM0_C0SC = FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_CHIE;
+  // FTM_CSC_MSB | FTM_CSC_ELSB:
+  // edge aligned PWM with high-true pulses
+  FTM0_C0SC = FTM_CSC_MSB | FTM_CSC_ELSB;
   FTM0_C0V = 0;
-  FTM0_C1SC = FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_CHIE;
+  FTM0_C1SC = FTM_CSC_MSB | FTM_CSC_ELSB;
   FTM0_C1V = 0;
-  FTM0_C2SC = FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_CHIE;
+  FTM0_C2SC = FTM_CSC_MSB | FTM_CSC_ELSB;
   FTM0_C2V = 0;
-  FTM0_C3SC = FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_CHIE;
+  FTM0_C3SC = FTM_CSC_MSB | FTM_CSC_ELSB;
   FTM0_C3V = 0;
-  FTM0_C4SC = FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_CHIE;
+  FTM0_C4SC = FTM_CSC_MSB | FTM_CSC_ELSB;
   FTM0_C4V = 0;
-  FTM0_C5SC = FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_CHIE;
+  FTM0_C5SC = FTM_CSC_MSB | FTM_CSC_ELSB;
   FTM0_C5V = 0;
 
   // FTM0 channel 7 is the main clock
