@@ -47,9 +47,9 @@ int 					awpid_nb = 0;
 //
 //	Controller equation:
 //
-//	C(z)=Kp + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f )
+//	C(z) = Kp + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f )
 //
-int rt_init_awpid( 	int			Nb,
+int AWPID_init( 		int			Nb,
 										double	*Kp, 
 										double	*Ki,
 										double	*Kd,
@@ -93,9 +93,9 @@ int rt_init_awpid( 	int			Nb,
 //
 // Computation of the control signal
 //
-int rt_control( double *Reference, 
-								double *Measurement, 
-								double *Control )	{
+int AWPID_control(	double *Reference, 
+										double *Measurement, 
+										double *Control )	{
 	
 	int		i;
 	
