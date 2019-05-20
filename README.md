@@ -6,5 +6,5 @@
 ## API description
 - DSHOT.ino: DSHOT600 communication.
 ## Authors
-- [Arda Yiğit](mailto:arda.yigit@insa-strasbourg.fr): DMA programming and ESC communication
-- [Jacques Gangloff:](mailto:jacques.gangloff@unistra.fr) higher level API, debugging 
+- [Arda Yiğit](mailto:arda.yigit@unistra.fr): DMA programming and ESC communication
+- [Jacques Gangloff:](mailto:jacques.gangloff@unistra.fr) higher level API, debugging
