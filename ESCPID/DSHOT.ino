@@ -9,12 +9,13 @@
 
 #include <Arduino.h>
 #include "DMAChannel.h"
+#include "ESCPID.h"
 
 //
 // Defines
 //
 
-#define DSHOT_MAX_OUTPUTS         6             // Maximum number of DSHOT outputs
+#define DSHOT_MAX_OUTPUTS         ESCPID_NB_ESC // Maximum number of DSHOT outputs
 #define DSHOT_DMA_LENGTH          18            // Number of steps of one DMA sequence (the two last values are zero)
 #define DSHOT_DSHOT_LENGTH        16            // Number of bits in a DSHOT sequence
 #define DSHOT_BT_DURATION         1670          // Duration of 1 DSHOT600 bit in ns

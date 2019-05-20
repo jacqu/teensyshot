@@ -9,9 +9,10 @@
  
 // Includes
 #include <math.h>
+#include "ESCPID.h"
 
 // Defines
-#define AWPID_MAX_NB					10		// Maximum number of PIDs
+#define AWPID_MAX_NB					ESCPID_NB_ESC		// Maximum number of PIDs
 
 
 // Main structure definition
@@ -32,7 +33,6 @@ typedef struct	{
 
 // Global variables
 AWPID_STRUCT	AWPID[AWPID_MAX_NB];
-int 					awpid_nb = 0;
 
 //
 //	Initialisation of the PID parametrs
@@ -49,8 +49,7 @@ int 					awpid_nb = 0;
 //
 //	C(z) = Kp + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f )
 //
-int AWPID_init( 		int			Nb,
-										double	*Kp, 
+int AWPID_init( 		double	*Kp, 
 										double	*Ki,
 										double	*Kd,
 										double	*f,
@@ -59,13 +58,7 @@ int AWPID_init( 		int			Nb,
 	
 	int			i;
 	
-	if ( Nb > AWPID_MAX_NB )
-		return 1;
-	
-	// Store the number of PIDs that are managed in global variable
-	awpid_nb = Nb;
-	
-	for ( i = 0; i < Nb; i++ )	{
+	for ( i = 0; i < AWPID_MAX_NB; i++ )	{
 		
 		// Definition of the PID tuning parameters
 		AWPID[i].Kp = 	Kp[i];
@@ -99,7 +92,7 @@ int AWPID_control(	double *Reference,
 	
 	int		i;
 	
-	for ( i = 0; i < awpid_nb; i++ )	{
+	for ( i = 0; i < AWPID_MAX_NB; i++ )	{
 		
 		// Computation of the error
 		AWPID[i].e1 = AWPID[i].e0;
