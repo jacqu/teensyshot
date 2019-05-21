@@ -148,7 +148,8 @@ int ESCCMD_arm( void )  {
 //    -1: ESCCMD subsystem not initialized
 //    -2: ESC not armed
 //    -3: ESC already in 3D mode
-//    -4: DSHOT error
+//    -4: motor not stopped
+//    -5: DSHOT error
 //
 int ESCCMD_3D_on( void )  {
   int i;
@@ -156,17 +157,21 @@ int ESCCMD_3D_on( void )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return -1;
-    
-  // Check if all the ESCs are armed
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+  
+  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+    // Check if all the ESCs are armed
     if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
       return -2;
   
-  // Check if ESCs are already in 3D mode
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+    // Check if ESCs are already in 3D mode
     if ( ESCCMD[i].state & ESCCMD_STATE_3D )
       return -3;
-      
+  
+    // Check if ESCs are stopped
+    if ( ESCCMD[i].state & ESCCMD_STATE_START )
+      return -4;
+  }
+  
   // Define 3D on command
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
     ESCCMD[i].cmd = DSHOT_CMD_3D_MODE_ON;
@@ -180,7 +185,7 @@ int ESCCMD_3D_on( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -4;
+      return -5;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
@@ -199,7 +204,7 @@ int ESCCMD_3D_on( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -4;
+      return -5;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
@@ -219,7 +224,8 @@ int ESCCMD_3D_on( void )  {
 //    -1: ESCCMD subsystem not initialized
 //    -2: ESC not armed
 //    -3: ESC already in 3D mode
-//    -4: DSHOT error
+//    -4: motor not stopped
+//    -5: DSHOT error
 //
 int ESCCMD_3D_off( void )  {
   int i;
@@ -227,17 +233,21 @@ int ESCCMD_3D_off( void )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return -1;
-    
-  // Check if all the ESCs are armed
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+  
+  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+    // Check if all the ESCs are armed
     if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
       return -2;
   
-  // Check if ESCs are already in default mode
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+    // Check if ESCs are already in default mode
     if ( !( ESCCMD[i].state & ESCCMD_STATE_3D ) )
       return -3;
-      
+  
+    // Check if ESCs are stopped
+    if ( ESCCMD[i].state & ESCCMD_STATE_START )
+      return -4;
+  }
+  
   // Define 3D off command
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
     ESCCMD[i].cmd = DSHOT_CMD_3D_MODE_OFF;
@@ -251,7 +261,7 @@ int ESCCMD_3D_off( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -4;
+      return -5;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
@@ -270,7 +280,7 @@ int ESCCMD_3D_off( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -4;
+      return -5;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
