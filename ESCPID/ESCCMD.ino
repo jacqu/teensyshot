@@ -1,5 +1,5 @@
 /*
- *  ESCCMD:    ESC DSHOT command packets formating API
+ *  ESCCMD:   ESC DSHOT command packets formating API
  *  
  *  Note:     Best viewed using Arduino IDE with tab space = 2
  *
@@ -10,15 +10,21 @@
 #include "ESCPID.h"
 
 // Defines
-#define ESCCMD_MAX_ESC          ESCPID_NB_ESC       // Max number of ESCs
+#define ESCCMD_MAX_ESC          ESCPID_NB_ESC     // Max number of ESCs
 
-#define ESCCMD_STATE_ARMED      1                   // Mask for the arming flag
-#define ESCCMD_STATE_3D         2                   // Mask for the normal/3D mode
-#define ESCCMD_STATE_START      4                   // Mask for the start/stop bit
-#define ESCCMD_STATE_ERROR      128                 // Mask for the error flag
+#define ESCCMD_STATE_ARMED      1                 // Mask for the arming flag
+#define ESCCMD_STATE_3D         2                 // Mask for the default/3D mode
+#define ESCCMD_STATE_START      4                 // Mask for the motor start/stop bit
+#define ESCCMD_STATE_ERROR      128               // Mask for the error flag
 
-#define ESCCMD_CMD_REPETITION   10                  // Number of time commands have to be repeated to be acknowledged by ESC
-#define ESCCMD_CMD_DELAY        10                  // Delay between two consecutive DSHOT transmissions (us)
+#define ESCCMD_CMD_REPETITION   10                // Number of time commands have to be repeated to be acknowledged by ESC
+#define ESCCMD_CMD_DELAY        10                // Delay between two consecutive DSHOT transmissions (us)
+
+#define ESCCMD_TIMER_PERIOD     2000              // Periodic loop period (us)
+
+#define ESCCMD_ERROR_DSHOT      -1                // DSHOT error
+#define ESCCMD_ERROR_SEQ        -2                // Invalid function call sequence error
+#define ESCCMD_ERROR_INIT       -3                // Call of non initialized function
 
 // enums: borrowed from betaflight pwm_output.h
 typedef enum {
@@ -56,24 +62,27 @@ typedef enum {
 typedef struct  {
   uint16_t      state;                // Current state of the cmd subsystem
   uint16_t      CRC_errors;           // Overall number of CRC error since start
-  uint16_t      last_error;           // Last error code
+  int16_t       last_error;           // Last error code
   uint16_t      cmd;                  // Last command
   uint8_t       tlm_deg;              // ESC temperature (°C)
-  uint16_t       tlm_volt;            // Voltage of the ESC power supply (0.01V)
-  uint16_t       tlm_amp;             // ESC current (0.01A)
-  uint16_t       tlm_mah;             // ESC consumption (mAh)
-  uint16_t       tlm_rpm;             // ESC electrical rpm (100rpm)
-  uint8_t        tlm;                 // Set to 1 when asking for telemetry
-  uint8_t        tlm_valid;           // Flag indicating the validity of telemetry data
+  uint16_t      tlm_volt;             // Voltage of the ESC power supply (0.01V)
+  uint16_t      tlm_amp;              // ESC current (0.01A)
+  uint16_t      tlm_mah;              // ESC consumption (mAh)
+  uint16_t      tlm_rpm;              // ESC electrical rpm (100rpm)
+  uint8_t       tlm;                  // Set to 1 when asking for telemetry
+  uint8_t       tlm_pend;             // Flag indicating a pending telemetry data request
+  uint8_t       tlm_valid;            // Flag indicating the validity of telemetry data
   } ESCCMD_STRUCT;
  
 //
 //  Global variables
 //
-ESCCMD_STRUCT  ESCCMD[ESCCMD_MAX_ESC];
-uint8_t        ESCCMD_init_flag = 0;
-uint16_t       ESCCMD_cmd[ESCCMD_MAX_ESC];
-uint8_t       ESCCMD_tlm[ESCCMD_MAX_ESC];
+IntervalTimer   ESCCMD_timer;                 // Timer object
+ESCCMD_STRUCT   ESCCMD[ESCCMD_MAX_ESC];       // Main data structure
+uint8_t         ESCCMD_init_flag = 0;         // Subsystem initialization flag
+uint8_t         ESCCMD_timer_flag = 0;        // Periodic loop enable/disable flag
+uint16_t        ESCCMD_cmd[ESCCMD_MAX_ESC];   // ESC commands
+uint8_t         ESCCMD_tlm[ESCCMD_MAX_ESC];   // ESC telemetry requests
 
 //
 //  Initialization
@@ -98,22 +107,19 @@ void ESCCMD_init( void )  {
 //
 //  Arm all ESCs
 //
-//  Return values:
-//    -1: ESCCMD subsystem not initialized
-//    -2: ESC already armed
-//    -3: DSHOT error
+//  Return values: see defines
 //
 int ESCCMD_arm( void )  {
   int i;
   
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
-    return -1;
+    return ESCCMD_ERROR_INIT;
     
   // Check if all the ESCs are in the initial state
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
     if ( ESCCMD[i].state & ESCCMD_STATE_ARMED )
-      return -2;
+      return ESCCMD_ERROR_SEQ;
       
   // Define stop command
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
@@ -128,7 +134,7 @@ int ESCCMD_arm( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -3;
+      return ESCCMD_ERROR_DSHOT;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
@@ -144,32 +150,27 @@ int ESCCMD_arm( void )  {
 //
 //  Activate 3D mode
 //
-//  Return values:
-//    -1: ESCCMD subsystem not initialized
-//    -2: ESC not armed
-//    -3: ESC already in 3D mode
-//    -4: motor not stopped
-//    -5: DSHOT error
+//  Return values: see defines
 //
 int ESCCMD_3D_on( void )  {
   int i;
   
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
-    return -1;
+    return ESCCMD_ERROR_INIT;
   
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
     // Check if all the ESCs are armed
     if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
-      return -2;
+      return ESCCMD_ERROR_SEQ;
   
     // Check if ESCs are already in 3D mode
     if ( ESCCMD[i].state & ESCCMD_STATE_3D )
-      return -3;
+      return ESCCMD_ERROR_SEQ;
   
     // Check if ESCs are stopped
     if ( ESCCMD[i].state & ESCCMD_STATE_START )
-      return -4;
+      return ESCCMD_ERROR_SEQ;
   }
   
   // Define 3D on command
@@ -185,7 +186,7 @@ int ESCCMD_3D_on( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -5;
+      return ESCCMD_ERROR_DSHOT;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
@@ -204,7 +205,7 @@ int ESCCMD_3D_on( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -5;
+      return ESCCMD_ERROR_DSHOT;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
@@ -220,32 +221,27 @@ int ESCCMD_3D_on( void )  {
 //
 //  Deactivate 3D mode
 //
-//  Return values:
-//    -1: ESCCMD subsystem not initialized
-//    -2: ESC not armed
-//    -3: ESC already in 3D mode
-//    -4: motor not stopped
-//    -5: DSHOT error
+//  Return values: see defines
 //
 int ESCCMD_3D_off( void )  {
   int i;
   
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
-    return -1;
+    return ESCCMD_ERROR_INIT;
   
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
     // Check if all the ESCs are armed
     if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
-      return -2;
+      return ESCCMD_ERROR_SEQ;
   
     // Check if ESCs are already in default mode
     if ( !( ESCCMD[i].state & ESCCMD_STATE_3D ) )
-      return -3;
+      return ESCCMD_ERROR_SEQ;
   
     // Check if ESCs are stopped
     if ( ESCCMD[i].state & ESCCMD_STATE_START )
-      return -4;
+      return ESCCMD_ERROR_SEQ;
   }
   
   // Define 3D off command
@@ -261,7 +257,7 @@ int ESCCMD_3D_off( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -5;
+      return ESCCMD_ERROR_DSHOT;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
@@ -280,7 +276,7 @@ int ESCCMD_3D_off( void )  {
   
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      return -5;
+      return ESCCMD_ERROR_DSHOT;
     
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY )
@@ -291,4 +287,72 @@ int ESCCMD_3D_off( void )  {
     ESCCMD[i].state &= ~(ESCCMD_STATE_3D);
       
   return 0;
+}
+
+//
+//  Start periodic loop. ESC should be armed.
+//
+//  Return values: see defines
+//
+int ESCCMD_start( void )  {
+  int i;
+  
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+    
+  // Check if timer already started
+  if ( ESCCMD_timer_flag )
+    return ESCCMD_ERROR_SEQ;
+  
+  // Checks
+  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+    // Check if all the ESCs are armed
+    if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
+      return ESCCMD_ERROR_SEQ;
+  
+    // Check if ESCs are stopped
+    if ( ESCCMD[i].state & ESCCMD_STATE_START )
+      return ESCCMD_ERROR_SEQ;
+  }
+  
+  // Initialize ESC structure
+  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+    ESCCMD[i].cmd = 0;
+    ESCCMD[i].tlm = 1;
+    ESCCMD[i].tlm_pend = 0;
+    ESCCMD[i].state |= ESCCMD_STATE_START;
+  }
+  
+  // Initialize timer
+  ESCCMD_timer.begin( ESCCMD_ISR_timer, ESCCMD_TIMER_PERIOD );
+  
+  return 0;
+}
+
+//
+//  Timer ISR
+//
+void ESCCMD_ISR_timer( ) {
+  int i;
+  
+  // Check if telemetry data is pending
+  
+  
+  // Define command buffer
+  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+    ESCCMD_cmd[i] = ESCCMD[i].cmd;
+  
+  // Send DSHOT command
+  if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) ) {
+    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+      ESCCMD[i].last_error = ESCCMD_ERROR_DSHOT;
+      ESCCMD[i].state |= ESCCMD_STATE_ERROR;
+    }
+  }
+  
+  // If telemetry is asked, increment the pending counter
+  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+    if ( ESCCMD[i].tlm )
+      ESCCMD[i].tlm_pend += 1;
 }
