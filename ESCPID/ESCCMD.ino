@@ -12,9 +12,9 @@
 // Defines
 #define ESCCMD_MAX_ESC					ESCPID_NB_ESC				// Max number of ESCs
 
-#define ESCCMD_STATE_ARMING			1										// Mask for the arming flag
-#define ESCCMD_STATE_START			2										// Mask for the start/stop bit
-#define ESCCMD_STATE_3D					4										// Mask for the normal/3D mode
+#define ESCCMD_STATE_ARMED			1										// Mask for the arming flag
+#define ESCCMD_STATE_3D					2										// Mask for the normal/3D mode
+#define ESCCMD_STATE_START			4										// Mask for the start/stop bit
 #define ESCCMD_STATE_ERROR			128									// Mask for the error flag
 
 #define ESCCMD_CMD_REPETITION		10									// Number of time commands have to be repeated to be acknowledged by ESC
@@ -63,7 +63,7 @@ typedef struct	{
   uint16_t 			tlm_amp;							// ESC current (0.01A)
   uint16_t 			tlm_mah;							// ESC consumption (mAh)
   uint16_t 			tlm_rpm;							// ESC electrical rpm (100rpm)
-  uint8_t				tlm_request;					// Set to 1 when asking for telemetry
+  uint8_t				tlm;									// Set to 1 when asking for telemetry
   uint8_t				tlm_valid;						// Flag indicating the validity of telemetry data
 	} ESCCMD_STRUCT;
  
@@ -78,9 +78,12 @@ uint8_t 			ESCCMD_tlm[ESCCMD_MAX_ESC];
 //
 //	Initialization
 //
-int ESCCMD_init( void )	{
+void ESCCMD_init( void )	{
 	int i;
 	
+	if ( ESCCMD_init_flag )
+		return;
+		
 	// Initialize data structures to zero
 	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
 		ESCCMD[i] = {};
@@ -88,10 +91,8 @@ int ESCCMD_init( void )	{
 	// Initialize DSHOT generation subsystem
 	DSHOT_init( );
 	
-	// Toggle initialization flag
+	// Set the initialization flag
 	ESCCMD_init_flag = 1;
-	
-	return 0;
 }
 
 //
@@ -111,12 +112,14 @@ int ESCCMD_arm( void )	{
 		
 	// Check if all the ESCs are in the initial state
 	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
-		if ( ESCCMD[i].state & ESCCMD_STATE_ARMING )
+		if ( ESCCMD[i].state & ESCCMD_STATE_ARMED )
 			return -2;
 			
-	// Define command
+	// Define stop command
 	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )	{
+		ESCCMD[i].cmd = DSHOT_CMD_MOTOR_STOP;
 		ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
+		ESCCMD[i].tlm = 0;
 		ESCCMD_tlm[i] = 0;
 	}
 	
@@ -131,9 +134,151 @@ int ESCCMD_arm( void )	{
 		delayMicroseconds( ESCCMD_CMD_DELAY )
 	}
 	
-	// Toggle the arming flag
+	// Set the arming flag
 	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
-		ESCCMD[i].state |= ESCCMD_STATE_ARMING;
+		ESCCMD[i].state |= ESCCMD_STATE_ARMED;
+			
+	return 0;
+}
+
+//
+//	Activate 3D mode
+//
+//	Return values:
+//		-1: ESCCMD subsystem not initialized
+//		-2: ESC not armed
+//		-3: ESC already in 3D mode
+//		-4: DSHOT error
+//
+int ESCCMD_3D_on( void )	{
+	int i;
+	
+	// Check if everything is initialized
+	if ( !ESCCMD_init_flag )
+		return -1;
+		
+	// Check if all the ESCs are armed
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+		if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
+			return -2;
+	
+	// Check if ESCs are already in 3D mode
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+		if ( ESCCMD[i].state & ESCCMD_STATE_3D )
+			return -3;
+			
+	// Define 3D on command
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )	{
+		ESCCMD[i].cmd = DSHOT_CMD_3D_MODE_ON;
+		ESCCMD_cmd[i] = DSHOT_CMD_3D_MODE_ON;
+		ESCCMD[i].tlm = 0;
+		ESCCMD_tlm[i] = 0;
+	}
+	
+	// Send command ESCCMD_CMD_REPETITION times
+	for ( i = 0; i < ESCCMD_CMD_REPETITION; i++ )	{
+	
+		// Send DSHOT signal to all ESCs
+		if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
+			return -4;
+		
+		// Wait some time
+		delayMicroseconds( ESCCMD_CMD_DELAY )
+	}
+	
+	// Define save settings command
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )	{
+		ESCCMD[i].cmd = DSHOT_CMD_SAVE_SETTINGS;
+		ESCCMD_cmd[i] = DSHOT_CMD_SAVE_SETTINGS;
+		ESCCMD[i].tlm = 0;
+		ESCCMD_tlm[i] = 0;
+	}
+	
+	// Send command ESCCMD_CMD_REPETITION times
+	for ( i = 0; i < ESCCMD_CMD_REPETITION; i++ )	{
+	
+		// Send DSHOT signal to all ESCs
+		if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
+			return -4;
+		
+		// Wait some time
+		delayMicroseconds( ESCCMD_CMD_DELAY )
+	}
+	
+	// Set the 3D mode flag
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+		ESCCMD[i].state |= ESCCMD_STATE_3D;
+			
+	return 0;
+}
+
+//
+//	Deactivate 3D mode
+//
+//	Return values:
+//		-1: ESCCMD subsystem not initialized
+//		-2: ESC not armed
+//		-3: ESC already in 3D mode
+//		-4: DSHOT error
+//
+int ESCCMD_3D_off( void )	{
+	int i;
+	
+	// Check if everything is initialized
+	if ( !ESCCMD_init_flag )
+		return -1;
+		
+	// Check if all the ESCs are armed
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+		if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
+			return -2;
+	
+	// Check if ESCs are already in default mode
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+		if ( !( ESCCMD[i].state & ESCCMD_STATE_3D ) )
+			return -3;
+			
+	// Define 3D off command
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )	{
+		ESCCMD[i].cmd = DSHOT_CMD_3D_MODE_OFF;
+		ESCCMD_cmd[i] = DSHOT_CMD_3D_MODE_OFF;
+		ESCCMD[i].tlm = 0;
+		ESCCMD_tlm[i] = 0;
+	}
+	
+	// Send command ESCCMD_CMD_REPETITION times
+	for ( i = 0; i < ESCCMD_CMD_REPETITION; i++ )	{
+	
+		// Send DSHOT signal to all ESCs
+		if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
+			return -4;
+		
+		// Wait some time
+		delayMicroseconds( ESCCMD_CMD_DELAY )
+	}
+	
+	// Define save settings command
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )	{
+		ESCCMD[i].cmd = DSHOT_CMD_SAVE_SETTINGS;
+		ESCCMD_cmd[i] = DSHOT_CMD_SAVE_SETTINGS;
+		ESCCMD[i].tlm = 0;
+		ESCCMD_tlm[i] = 0;
+	}
+	
+	// Send command ESCCMD_CMD_REPETITION times
+	for ( i = 0; i < ESCCMD_CMD_REPETITION; i++ )	{
+	
+		// Send DSHOT signal to all ESCs
+		if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
+			return -4;
+		
+		// Wait some time
+		delayMicroseconds( ESCCMD_CMD_DELAY )
+	}
+	
+	// Clear the 3D mode flag
+	for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+		ESCCMD[i].state &= ~(ESCCMD_STATE_3D);
 			
 	return 0;
 }
