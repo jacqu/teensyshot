@@ -97,7 +97,7 @@ void DSHOT_init( void ) {
   CORE_PIN20_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;  // FTM0_CH5
 
   // First DMA channel is the only one triggered by the bit clock
-  dma[0].sourceBuffer( DSHOT_dma_data[0], 2*DSHOT_DMA_LENGTH );
+  dma[0].sourceBuffer( DSHOT_dma_data[0], DSHOT_DMA_LENGTH * sizeof( uint16_t ) );
   dma[0].destination( (uint16_t&) *DSHOT_DMA_channnel_val[0] );
   dma[0].triggerAtHardwareEvent( DMAMUX_SOURCE_FTM0_CH7 );
   dma[0].interruptAtCompletion( );
@@ -117,6 +117,7 @@ void DSHOT_init( void ) {
   // FTM0_CNV = 0: initialize the counter channel N at 0
   // FTM_CSC_MSB | FTM_CSC_ELSB:
   // edge aligned PWM with high-true pulses
+  /* REPLACE BY FOR LOOP */
   FTM0_C0SC = FTM_CSC_MSB | FTM_CSC_ELSB;
   FTM0_C0V = 0;
   FTM0_C1SC = FTM_CSC_MSB | FTM_CSC_ELSB;
@@ -197,10 +198,12 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
 
   // Check if FMT0 was disabled by the DMA ISR
   // Check only bits 3 and 4: non null if a clock source is set
+  /* TODO: test this error code */
   if ( FTM0_SC & (3 << 3) )
     return -2;
 
   // Check if there is a DMA error
+  /* TODO: test this error code */
   for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ )
     if ( dma[i].error( ) )
       return -1;
