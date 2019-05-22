@@ -20,20 +20,29 @@ int temp;
 //  Arduino setup function
 //
 void setup() {
+  pinMode(5,OUTPUT);
   Serial.begin(115200);
   while(!Serial);
   delay(10);
-  Serial.println("start");
-  DSHOT_init();
+  ESCCMD_init();
+  temp = ESCCMD_arm(); // TODO: check the return
+  if (temp)
+    Serial.println(temp);
+  temp = ESCCMD_3D_on();
+  if (temp)
+    Serial.println(temp);
+  temp = ESCCMD_start();
+  if (temp)
+    Serial.println(temp);
 }
 
 //
 //  Arduino main loop
 //
 void loop() {
-  temp = DSHOT_send(armingCmd, tlm);
-  delay(1);
-  if (temp)
+  temp = getError();
+  if (temp) {
     Serial.println(temp);
+  }
   delay(1);
 }
