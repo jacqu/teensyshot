@@ -21,10 +21,14 @@
 #define ESCCMD_CMD_DELAY        10                // Delay between two consecutive DSHOT transmissions (us)
 
 #define ESCCMD_TIMER_PERIOD     2000              // Periodic loop period (us)
+#define ESCCMD_ESC_WATCHDOG     250000            // ESC arming watchdog timer (us)
+#define ESCCMD_TIMER_MAX_MISS   ( ESCCMD_ESC_WATCHDOG / ESCCMD_TIMER_PERIOD )
+                                                  // Maximum missed tics before watchdog is triggered
 
 #define ESCCMD_ERROR_DSHOT      -1                // DSHOT error
 #define ESCCMD_ERROR_SEQ        -2                // Invalid function call sequence error
 #define ESCCMD_ERROR_INIT       -3                // Call of non initialized function
+#define ESCCMD_ERROR_PARAM      -4                // Invalid parameter error
 
 // enums: borrowed from betaflight pwm_output.h
 typedef enum {
@@ -78,6 +82,7 @@ typedef struct  {
 //  Global variables
 //
 IntervalTimer   ESCCMD_timer;                 // Timer object
+uint16_t        ESCCMD_tic_pend =0;           // Number of timer tic waiting for ackowledgement
 ESCCMD_STRUCT   ESCCMD[ESCCMD_MAX_ESC];       // Main data structure
 uint8_t         ESCCMD_init_flag = 0;         // Subsystem initialization flag
 uint8_t         ESCCMD_timer_flag = 0;        // Periodic loop enable/disable flag
@@ -143,6 +148,48 @@ int ESCCMD_arm( void )  {
   // Set the arming flag
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
     ESCCMD[i].state |= ESCCMD_STATE_ARMED;
+
+  return 0;
+}
+
+//
+//  Arm specific ESC
+//
+//  Return values: see defines
+//
+int ESCCMD_arm( uint8_t i )  {
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+    
+  // Check if i is valid
+  if ( i >= ESCCMD_MAX_ESC )
+    return ESCCMD_ERROR_PARAM;
+
+  // Check if the ESC is in the initial state
+  if ( ESCCMD[i].state & ESCCMD_STATE_ARMED )
+    return ESCCMD_ERROR_SEQ;
+
+  // Define stop command on the ith ESC, keep last cmd on other
+  ESCCMD[i].cmd = DSHOT_CMD_MOTOR_STOP;
+  ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
+  ESCCMD[i].tlm = 0;
+  ESCCMD_tlm[i] = 0;
+
+  // Send command ESCCMD_CMD_REPETITION times
+  for ( i = 0; i < ESCCMD_CMD_REPETITION; i++ )  {
+
+    // Send DSHOT signal to all ESCs
+    if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
+      return ESCCMD_ERROR_DSHOT;
+
+    // Wait some time
+    delayMicroseconds( ESCCMD_CMD_DELAY );
+  }
+
+  // Set the arming flag
+  ESCCMD[i].state |= ESCCMD_STATE_ARMED;
 
   return 0;
 }
@@ -321,9 +368,10 @@ int ESCCMD_start( void )  {
     ESCCMD[i].cmd = 0;
     ESCCMD[i].tlm = 1;
     ESCCMD[i].tlm_pend = 0;
-    ESCCMD[i].state |= ESCCMD_STATE_START;
   }
 
+  ESCCMD_tic_pend = 0;
+  
   // Initialize timer
   ESCCMD_timer.begin( ESCCMD_ISR_timer, ESCCMD_TIMER_PERIOD );
 
@@ -331,46 +379,74 @@ int ESCCMD_start( void )  {
 }
 
 //
+//  Stop periodic loop. ESC should be armed.
+//
+//  Return values: see defines
+//
+int ESCCMD_stop( void )  {
+  int i;
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    return ESCCMD_ERROR_SEQ;
+
+  // Stop timer
+  ESCCMD_timer.end();
+  ESCCMD_timer_flag = 0;
+
+  return 0;
+}
+
+//
+//  This routine should be called within the main loop
+//
+void ESCCMD_tic( void )  {
+  
+  // Do something only if tics are pending
+  if ( ESCCMD_tic_pend ) {
+  
+    // Acknowledgement of one timer clock event
+    ESCCMD_tic_pend--;
+    
+    // Check if everything is initialized
+    if ( !ESCCMD_init_flag )
+      return ESCCMD_ERROR_INIT;
+    
+    // Deal with all ESC
+    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+      // Check if ESC is still armed, if not try to arm it again
+      if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
+        ESCCMD_arm( );
+    }
+  }
+
+  return 0;
+}
+
+
+
+//
 //  Timer ISR
 //
 void ESCCMD_ISR_timer( void ) {
   int i;
-
-  // Check if telemetry data is pending
-
-
-  // Define command buffer
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
-    ESCCMD_cmd[i] = ESCCMD[i].cmd;
-
-  // Send DSHOT command
-  /* FOR DEBUG:
-   * last_error contains the error code sent by DSHOT_send
-   */
-  int temp = DSHOT_send( ESCCMD_cmd, ESCCMD_tlm );
-  if ( temp ) {
-    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
-      ESCCMD[i].last_error = temp;
-      ESCCMD[i].state |= ESCCMD_STATE_ERROR;
+  
+  // Increment tic pending counter
+  for ( i = 0; i < ESCCMD_MAX_ ESC; i++ )  {
+  
+    // Check for maximum missed tics (ESC watchdog timer = 250ms on a KISS ESC)
+    if ( ESCCMD[i].tic_pend >= ESCCMD_TIMER_MAX_MISS )  {
+    
+      // ESC watchdog switch to disarmed mode
+      ESCCMD[i].state &= ~(ESCCMD_STATE_ARMED);
+    }
+    else {
+      ESCCMD[i].tic_pend++;
     }
   }
-
-  // If telemetry is asked, increment the pending counter
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
-    if ( ESCCMD[i].tlm )
-      ESCCMD[i].tlm_pend += 1;
 }
 
-/* FOR DEBUG*/
-int getError( void ) {
-  int i;
-  for (i = 0; i < ESCCMD_MAX_ESC; i++) {
-    //noInterrupts();
-    int temp = ESCCMD[i].last_error;
-    //interrupts();
-    if (temp) {
-      return temp;
-    }
-  }
-  return 0;
-}
