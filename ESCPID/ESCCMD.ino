@@ -19,11 +19,14 @@
 
 #define ESCCMD_CMD_REPETITION   10                // Number of time commands have to be repeated to be acknowledged by ESC
 #define ESCCMD_CMD_DELAY        10                // Delay between two consecutive DSHOT transmissions (us)
+#define ESCCMD_CMD_SAVE_DELAY   35000             // Minimum time to wait after a save command (us) 
 
 #define ESCCMD_TIMER_PERIOD     2000              // Periodic loop period (us)
 #define ESCCMD_ESC_WATCHDOG     250000            // ESC arming watchdog timer (us)
 #define ESCCMD_TIMER_MAX_MISS   ( ESCCMD_ESC_WATCHDOG / ESCCMD_TIMER_PERIOD )
                                                   // Maximum missed tics before watchdog is triggered
+#define ESCCMD_TLM_UART_SPEED   115200            // Baudrate of the telemetry serial transmission
+#define ESCCMD_TLM_LENGTH       10                // Number of bytes in the telemetry packet
 
 #define ESCCMD_ERROR_DSHOT      -1                // DSHOT error
 #define ESCCMD_ERROR_SEQ        -2                // Invalid function call sequence error
@@ -104,6 +107,14 @@ void ESCCMD_init( void )  {
 
   // Initialize DSHOT generation subsystem
   DSHOT_init( );
+  
+  // Initialize telemetry UART channels
+  Serial1.begin( ESCCMD_TLM_UART_SPEED );
+  Serial2.begin( ESCCMD_TLM_UART_SPEED );
+  Serial3.begin( ESCCMD_TLM_UART_SPEED );
+  Serial4.begin( ESCCMD_TLM_UART_SPEED );
+  Serial5.begin( ESCCMD_TLM_UART_SPEED );
+  Serial6.begin( ESCCMD_TLM_UART_SPEED );
 
   // Set the initialization flag
   ESCCMD_init_flag = 1;
@@ -114,7 +125,7 @@ void ESCCMD_init( void )  {
 //
 //  Return values: see defines
 //
-int ESCCMD_arm( void )  {
+int ESCCMD_arm_all( void )  {
   int i;
 
   // Check if everything is initialized
@@ -157,7 +168,7 @@ int ESCCMD_arm( void )  {
 //
 //  Return values: see defines
 //
-int ESCCMD_arm( uint8_t i )  {
+int ESCCMD_arm_ESC( uint8_t i )  {
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -261,6 +272,9 @@ int ESCCMD_3D_on( void )  {
   // Set the 3D mode flag
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
     ESCCMD[i].state |= ESCCMD_STATE_3D;
+    
+  // Minimum delay before next command
+  delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
 
   return 0;
 }
@@ -405,6 +419,117 @@ int ESCCMD_stop( void )  {
 //  This routine should be called within the main loop
 //
 void ESCCMD_tic( void )  {
+  int             i, j;
+  uint8_t         packet_flag;
+  static uint8_t  bufferTlm[ESCCMD_TLM_LENGTH];
+
+  // Read telemetry if packets are pending
+  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+    if ( ESCCMD[i].tlm_pend ) {
+      
+      // Packet flag indicates if a complete packet has arrived
+      packet_flag = 0;
+      
+      switch( i ) {
+        case 1:
+          // Check if a complete packet has arrived
+          if ( Serial1.available( ) == ESCCMD_TLM_LENGTH )  {
+          
+            // Read packet
+            for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
+              bufferTlm[i] = Serial1.read( );
+            
+            // Update packet flag and pending packet counter
+            packet_flag = 1;
+            ESCCMD[i].tlm_pend--;
+            }
+          break;
+          
+        case 2:
+          // Check if a complete packet has arrived
+          if ( Serial2.available( ) == ESCCMD_TLM_LENGTH )  {
+          
+            // Read packet
+            for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
+              bufferTlm[i] = Serial2.read( );
+            
+            // Update packet flag and pending packet counter
+            packet_flag = 1;
+            ESCCMD[i].tlm_pend--;
+          }
+          break;
+        
+        case 3:
+          // Check if a complete packet has arrived
+          if ( Serial3.available( ) == ESCCMD_TLM_LENGTH )  {
+          
+            // Read packet
+            for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
+              bufferTlm[i] = Serial3.read( );
+              
+            // Update packet flag and pending packet counter
+            packet_flag = 1;
+            ESCCMD[i].tlm_pend--;
+          }
+          break;
+        
+        case 4:
+          // Check if a complete packet has arrived
+          if ( Serial4.available( ) == ESCCMD_TLM_LENGTH )  {
+          
+            // Read packet
+            for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
+              bufferTlm[i] = Serial4.read( );
+            
+            // Update packet flag and pending packet counter
+            packet_flag = 1;
+            ESCCMD[i].tlm_pend--;
+          }
+          break;
+          
+        case 5:
+          // Check if a complete packet has arrived
+          if ( Serial5.available( ) == ESCCMD_TLM_LENGTH )  {
+          
+            // Read packet
+            for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
+              bufferTlm[i] = Serial5.read( );
+            
+            // Update packet flag and pending packet counter
+            packet_flag = 1;
+            ESCCMD[i].tlm_pend--;
+          }
+          break;
+        
+        case 6:
+          // Check if a complete packet has arrived
+          if ( Serial6.available( ) == ESCCMD_TLM_LENGTH )  {
+          
+            // Read packet
+            for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
+              bufferTlm[i] = Serial6.read( );
+            
+            // Update packet flag and pending packet counter
+            packet_flag = 1;
+            ESCCMD[i].tlm_pend--;
+          }
+          break;
+        
+        default:
+      }
+      
+      // If a packet has arrived, process it
+      
+      if ( packet_flag )  {
+        tlmData.temperature = bufferTlm[0];
+        tlmData.voltage = (bufferTlm[1] << 8) | bufferTlm[2];
+        tlmData.current = (bufferTlm[3] << 8) | bufferTlm[4];
+        tlmData.consumption = (bufferTlm[5] << 8) | bufferTlm[6];
+        tlmData.rpm = (bufferTlm[7] << 8) | bufferTlm[8];
+        tlmData.crcCheck = bufferTlm[9] == calculateCrc8(bufferTlm, TLM_LENGTH-1);
+      }
+    }
+  }
   
   // Do something only if tics are pending
   if ( ESCCMD_tic_pend ) {
@@ -415,16 +540,23 @@ void ESCCMD_tic( void )  {
     // Check if everything is initialized
     if ( !ESCCMD_init_flag )
       return ESCCMD_ERROR_INIT;
-    
-    // Deal with all ESC
-    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
-      // Check if ESC is still armed, if not try to arm it again
+      
+    // Check if all ESC are armed
+    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
       if ( !( ESCCMD[i].state & ESCCMD_STATE_ARMED ) )
-        ESCCMD_arm( );
-    }
+        return;
+    
+    // Send current command
+    DSHOT_send( ESCCMD_cmd, ESCCMD_tlm );
+    delayMicroseconds( ESCCMD_CMD_DELAY );
+    
+    // Update telemetry packet pending counter
+    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+      if ( ESCCMD[i].tlm )
+        ESCCMD[i].tlm_pend++;
   }
 
-  return 0;
+  return;
 }
 
 
