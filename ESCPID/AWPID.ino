@@ -14,7 +14,6 @@
 // Defines
 #define AWPID_MAX_NB          ESCPID_NB_ESC    // Maximum number of PIDs
 
-
 // Main structure definition
 typedef struct  {
   double Kp;        // Proportional gain
@@ -49,7 +48,7 @@ AWPID_STRUCT  AWPID[AWPID_MAX_NB];
 //
 //  C(z) = Kp + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f )
 //
-int AWPID_init(     double  *Kp, 
+void AWPID_init(    double  *Kp, 
                     double  *Ki,
                     double  *Kd,
                     double  *f,
@@ -64,8 +63,8 @@ int AWPID_init(     double  *Kp,
     AWPID[i].Kp =   Kp[i];
     AWPID[i].Ki =   Ki[i];
     AWPID[i].Kd =   Kd[i];
-    AWPID[i].f =     f[i];
-    AWPID[i].Sat =   Sat[i];
+    AWPID[i].f =    f[i];
+    AWPID[i].Sat =  Sat[i];
     
     // Initialisation of the PID intrnal variables
     AWPID[i].u0 =   0;
@@ -80,13 +79,13 @@ int AWPID_init(     double  *Kp,
     AWPID[i].ud1 =  0;
     }
   
-  return 0;
+  return;
   }
 
 //
 // Computation of the control signal
 //
-int AWPID_control(  double *Reference, 
+void AWPID_control( double *Reference, 
                     double *Measurement, 
                     double *Control )  {
   
