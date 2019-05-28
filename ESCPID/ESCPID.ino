@@ -31,7 +31,7 @@ char    ESCPID_error_msg[ESCPID_ERROR_MSG_LENGTH];
 //
 //  Error processing
 //
-char *ESCPID_error( char *prefix, int ret ) {
+char *ESCPID_error( const char *prefix, int ret ) {
   
   switch( ret ) {
     case ESCCMD_ERROR_DSHOT:

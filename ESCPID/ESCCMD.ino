@@ -186,10 +186,10 @@ int ESCCMD_arm_ESC( uint8_t i )  {
 
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY );
-  }
 
-  // Set the arming flag
-  ESCCMD[i].state |= ESCCMD_STATE_ARMED;
+    // Set the arming flag
+    ESCCMD[i].state |= ESCCMD_STATE_ARMED;
+  }
 
   return 0;
 }
