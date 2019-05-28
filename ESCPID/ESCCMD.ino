@@ -80,18 +80,18 @@ void ESCCMD_init( void )  {
 
   // Initialize data structures to zero
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ ) {
-    ESCCMD[i].state = 0;
-    ESCCMD[i].CRC_errors = 0;
-    ESCCMD[i].last_error = 0;
-    ESCCMD[i].cmd = 0;
-    ESCCMD[i].tlm_deg = 0;
-    ESCCMD[i].tlm_volt = 0;
-    ESCCMD[i].tlm_amp = 0;
-    ESCCMD[i].tlm_mah = 0;
-    ESCCMD[i].tlm_rpm = 0;
-    ESCCMD[i].tlm = 0;
-    ESCCMD[i].tlm_pend = 0;
-    ESCCMD[i].tlm_valid = 0;
+    ESCCMD[i].state       = 0;
+    ESCCMD[i].CRC_errors  = 0;
+    ESCCMD[i].last_error  = 0;
+    ESCCMD[i].cmd         = 0;
+    ESCCMD[i].tlm_deg     = 0;
+    ESCCMD[i].tlm_volt    = 0;
+    ESCCMD[i].tlm_amp     = 0;
+    ESCCMD[i].tlm_mah     = 0;
+    ESCCMD[i].tlm_rpm     = 0;
+    ESCCMD[i].tlm         = 0;
+    ESCCMD[i].tlm_pend    = 0;
+    ESCCMD[i].tlm_valid   = 0;
   }
 
   // Initialize DSHOT generation subsystem
