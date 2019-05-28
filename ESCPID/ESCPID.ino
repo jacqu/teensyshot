@@ -1,4 +1,4 @@
-/*
+/*P
  *  ESCPID:   PID control of up to 6 ESCs using teensy 3.5 MCU
  *
  *  Note:     Best viewed using Arduino IDE with tab space = 2
