@@ -407,7 +407,7 @@ int ESCCMD_stop_timer( void )  {
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
     ESCCMD[i].cmd = 0;
     ESCCMD[i].tlm = 0;
-    ESCCMD[i].state &= ^( ESCCMD_STATE_ARMED | ESCCMD_STATE_START );
+    ESCCMD[i].state &= ~( ESCCMD_STATE_ARMED | ESCCMD_STATE_START );
   }
 
   return 0;
@@ -628,6 +628,9 @@ int ESCCMD_tic( void )  {
           // Wait for last out of sync bytes to come in
           for (j = 0; j < ESCCMD[i].tlm_pend + 1; j++ )
             delayMicroseconds( ESCCMD_TIMER_PERIOD );
+          
+          // Reset pending packet counter: all packets should be arrived
+          ESCCMD[i].tlm_pend = 0;
 
           // Flush UART incoming buffer
 
@@ -659,9 +662,6 @@ int ESCCMD_tic( void )  {
             default:
               break;
           }
-
-          // Reset pending packet counter
-          ESCCMD[i].tlm_pend = 0;
         }
       }
     }
@@ -739,17 +739,13 @@ uint8_t ESCCMD_crc8( uint8_t* buf, uint8_t buflen ) {
 void ESCCMD_ISR_timer( void ) {
   int i;
 
-  // Increment tic pending counter
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
-
-    // Check for maximum missed tics (ESC watchdog timer = 250ms on a KISS ESC)
-    if ( ESCCMD[i].tic_pend >= ESCCMD_TIMER_MAX_MISS )  {
-
-      // ESC watchdog switch to disarmed mode
+  // Check for maximum missed tics (ESC watchdog timer = 250ms on a KISS ESC)
+  if ( ESCCMD_tic_pend >= ESCCMD_TIMER_MAX_MISS )  {
+    
+    // ESC watchdog switch to disarmed and stopped mode
+    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
       ESCCMD[i].state &= ~( ESCCMD_STATE_ARMED | ESCCMD_STATE_START );
-    }
-    else {
-      ESCCMD[i].tic_pend++;
-    }
   }
+  else
+    ESCCMD_tic_pend++;
 }
