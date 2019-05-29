@@ -48,11 +48,11 @@ AWPID_STRUCT  AWPID[AWPID_MAX_NB];
 //
 //  C(z) = Kp + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f )
 //
-void AWPID_init(    const double  *Kp, 
-                    const double  *Ki,
-                    const double  *Kd,
-                    const double  *f,
-                    const double  *Sat
+void AWPID_init(    double  *Kp, 
+                    double  *Ki,
+                    double  *Kd,
+                    double  *f,
+                    double  *Sat
                      )  {
   
   int      i;

@@ -15,18 +15,23 @@
 #define ESCPID_USB_UART_SPEED           115200      // Baudrate of the teeensy USB serial link
 #define ESCPID_ERROR_MSG_LENGTH         80          // Max string length of an error message
 
-// Constants
-const double ESCPID_Kp[ESCPID_NB_ESC] =   { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
-const double ESCPID_Ki[ESCPID_NB_ESC] =   { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-const double ESCPID_Kd[ESCPID_NB_ESC] =   { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-const double ESCPID_f[ESCPID_NB_ESC] =    { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-const double ESCPID_Sat[ESCPID_NB_ESC] =  { 999.0, 999.0, 999.0, 999.0, 999.0, 999.0 };
+#define ESCPID_PID_P                    1.0         // PID proportional gain
+#define ESCPID_PID_I                    1.0         // PID integral gain
+#define ESCPID_PID_D                    0.0         // PID derivative gain
+#define ESCPID_PID_f                    0.0         // PID derivative filtering pole
+#define ESCPID_PID_SAT                  999.0       // PID control input saturtion value
 
 // Globals
 double  ESCPID_Reference[ESCPID_NB_ESC] = {};
 double  ESCPID_Measurement[ESCPID_NB_ESC] = {};
 double  ESCPID_Control[ESCPID_NB_ESC] = {};
 char    ESCPID_error_msg[ESCPID_ERROR_MSG_LENGTH];
+
+double  ESCPID_Kp[ESCPID_NB_ESC];
+double  ESCPID_Ki[ESCPID_NB_ESC];
+double  ESCPID_Kd[ESCPID_NB_ESC];
+double  ESCPID_f[ESCPID_NB_ESC];
+double  ESCPID_Sat[ESCPID_NB_ESC];
 
 //
 //  Error processing
@@ -89,6 +94,15 @@ void setup() {
   
   // Initialize USB serial link
   Serial.begin( ESCPID_USB_UART_SPEED );
+  
+  // Initialize PID gains
+  for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
+    ESCPID_Kp[i] =  ESCPID_PID_P;
+    ESCPID_Ki[i] =  ESCPID_PID_I;
+    ESCPID_Kd[i] =  ESCPID_PID_D;
+    ESCPID_f[i] =   ESCPID_PID_F;
+    ESCPID_Sat[i] = ESCPID_PID_SAT;
+  }
   
   // Initialize DSHOT subsystem
   DSHOT_init( );
