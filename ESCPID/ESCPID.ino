@@ -168,7 +168,7 @@ void loop() {
       if ( ( ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] ) ) )
         Serial.println( ESCPID_error( "ESCCMD_throttle", ret ) );
   }
-  else {
+  else if ( ret ) {
     // Process error
     Serial.println( ESCPID_error( "ESCCMD_tic", ret ) );
   }
