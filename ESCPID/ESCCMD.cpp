@@ -74,7 +74,7 @@ HardwareSerial      ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
 //  Initialization
 //
 void ESCCMD_init( void )  {
-  int i;
+  static int i;
 
   if ( ESCCMD_init_flag )
     return;
@@ -112,7 +112,7 @@ void ESCCMD_init( void )  {
 //  Return values: see defines
 //
 int ESCCMD_arm_all( void )  {
-  int i;
+  static int i;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -153,7 +153,7 @@ int ESCCMD_arm_all( void )  {
 //  Return values: see defines
 //
 int ESCCMD_3D_on( void )  {
-  int i;
+  static int i;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -223,7 +223,7 @@ int ESCCMD_3D_on( void )  {
 //  Return values: see defines
 //
 int ESCCMD_3D_off( void )  {
-  int i;
+  static int i;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -290,7 +290,7 @@ int ESCCMD_3D_off( void )  {
 //  Return values: see defines
 //
 int ESCCMD_start_timer( void )  {
-  int i;
+  static int i;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -334,7 +334,7 @@ int ESCCMD_start_timer( void )  {
 //  Return values: see defines
 //
 int ESCCMD_stop_timer( void )  {
-  int i;
+  static int i;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -364,14 +364,15 @@ int ESCCMD_stop_timer( void )  {
 //    3D mode     : -999 -> 999
 //
 int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
-
+  static uint8_t local_state;
+  
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
 
   // Define a local copy of the state
   noInterrupts();
-  uint8_t local_state = ESCCMD_state[i];
+  local_state = ESCCMD_state[i];
   interrupts();
 
   // Check if ESC is armed
@@ -415,14 +416,15 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
 //  The sign of the measurement depends on the last throttle sign
 //
 int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
-
+  static uint8_t local_state;
+  
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
 
   // Define a local copy of the state
   noInterrupts();
-  uint8_t local_state = ESCCMD_state[i];
+  local_state = ESCCMD_state[i];
   interrupts();
 
   // Check if ESC is armed
@@ -456,9 +458,13 @@ int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
 //  This routine should be called within the main loop
 //
 int ESCCMD_tic( void )  {
-  int             i, j, ret = 0;
+  static int      i, j, ret;
   static uint8_t  bufferTlm[ESCCMD_TLM_LENGTH];
-
+  static uint16_t local_tic_pend;
+  
+  // Defaults to no error
+  ret = 0;
+  
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
     if ( ESCCMD_tlm_pend[i] ) {
@@ -505,7 +511,7 @@ int ESCCMD_tic( void )  {
 
   // Do something only if tics are pending
   noInterrupts();
-  uint16_t local_tic_pend = ESCCMD_tic_pend;
+  local_tic_pend = ESCCMD_tic_pend;
   interrupts();
 
   if ( local_tic_pend ) {
@@ -546,7 +552,10 @@ int ESCCMD_tic( void )  {
 // crc8 calculation
 //
 uint8_t ESCCMD_update_crc8( uint8_t crc, uint8_t crc_seed ) {
-  uint8_t crc_u = crc;
+  static uint8_t crc_u;
+  static crc_u;
+  
+  crc_u = crc;
   crc_u ^= crc_seed;
 
   for ( int i = 0; i < 8; i++ ) {
@@ -557,7 +566,10 @@ uint8_t ESCCMD_update_crc8( uint8_t crc, uint8_t crc_seed ) {
 }
 
 uint8_t ESCCMD_crc8( uint8_t* buf, uint8_t buflen ) {
-  uint8_t crc = 0;
+  static uint8_t crc;
+  
+  crc = 0;
+  
   for ( int i = 0; i < buflen; i++ ) {
     crc = ESCCMD_update_crc8( buf[i], crc );
   }
@@ -569,7 +581,7 @@ uint8_t ESCCMD_crc8( uint8_t* buf, uint8_t buflen ) {
 //  Timer ISR
 //
 void ESCCMD_ISR_timer( void ) {
-  int i;
+  static int i;
 
   // Check for maximum missed tics (ESC watchdog timer = 250ms on a KISS ESC)
   if ( ESCCMD_tic_pend >= ESCCMD_TIMER_MAX_MISS )  {
