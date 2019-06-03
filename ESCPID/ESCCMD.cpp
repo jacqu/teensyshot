@@ -403,11 +403,13 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
 
   }
 
-  // Switch start mode on
-  noInterrupts();
-  ESCCMD_state[i] |= ESCCMD_STATE_START;
-  interrupts();
-
+  // Switch start mode on only if needed
+  if ( local_state & ESCCMD_STATE_START ) {
+    noInterrupts();
+    ESCCMD_state[i] |= ESCCMD_STATE_START;
+    interrupts();
+  }
+  
   return 0;
 }
 
