@@ -10,6 +10,10 @@
 
 // Defines
 #define ESCCMD_MAX_ESC          ESCPID_NB_ESC     // Max number of ESCs
+#define ESCCMD_NB_UART          6                 // Number of UARTS available
+#if ESCCMD_NB_UART < ESCCMD_MAX_ESC
+  #error ESCCMD_NB_UART should be >= ESCCMD_MAX_ESC
+#endif
 
 #define ESCCMD_STATE_ARMED      1                 // Mask for the arming flag
 #define ESCCMD_STATE_3D         2                 // Mask for the default/3D mode
