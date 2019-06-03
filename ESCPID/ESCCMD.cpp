@@ -42,32 +42,27 @@ typedef enum {
   DSHOT_CMD_MAX = 47
 } ESCCMD_codes;
 
-// Main structure definition
-typedef struct  {
-  uint16_t      state;                // Current state of the cmd subsystem
-  uint16_t      CRC_errors;           // Overall number of CRC error since start
-  int16_t       last_error;           // Last error code
-  uint16_t      cmd;                  // Last command
-  uint8_t       tlm_deg;              // ESC temperature (°C)
-  uint16_t      tlm_volt;             // Voltage of the ESC power supply (0.01V)
-  uint16_t      tlm_amp;              // ESC current (0.01A)
-  uint16_t      tlm_mah;              // ESC consumption (mAh)
-  uint16_t      tlm_rpm;              // ESC electrical rpm (100rpm)
-  uint8_t       tlm;                  // Set to 1 when asking for telemetry
-  uint8_t       tlm_pend;             // Flag indicating a pending telemetry data request
-  uint8_t       tlm_valid;            // Flag indicating the validity of telemetry data
-  } ESCCMD_STRUCT;
-
 //
 //  Global variables
 //
-IntervalTimer           ESCCMD_timer;                 // Timer object
-volatile uint16_t       ESCCMD_tic_pend = 0;          // Number of timer tic waiting for ackowledgement
-volatile ESCCMD_STRUCT  ESCCMD[ESCCMD_MAX_ESC];       // Main data structure
-uint8_t                 ESCCMD_init_flag = 0;         // Subsystem initialization flag
-uint8_t                 ESCCMD_timer_flag = 0;        // Periodic loop enable/disable flag
-uint16_t                ESCCMD_cmd[ESCCMD_MAX_ESC];   // ESC commands
-uint8_t                 ESCCMD_tlm[ESCCMD_MAX_ESC];   // ESC telemetry requests
+volatile uint16_t   ESCCMD_state[ESCCMD_MAX_ESC];           // Current state of the cmd subsystem
+volatile uint16_t   ESCCMD_CRC_errors[ESCCMD_MAX_ESC];      // Overall number of CRC error since start
+volatile int16_t    ESCCMD_last_error[ESCCMD_MAX_ESC];      // Last error code
+volatile uint16_t   ESCCMD_cmd[ESCCMD_MAX_ESC];             // Last command
+volatile uint8_t    ESCCMD_tlm_deg[ESCCMD_MAX_ESC];         // ESC temperature (°C)
+volatile uint16_t   ESCCMD_tlm_volt[ESCCMD_MAX_ESC];        // Voltage of the ESC power supply (0.01V)
+volatile uint16_t   ESCCMD_tlm_amp[ESCCMD_MAX_ESC];         // ESC current (0.01A)
+volatile uint16_t   ESCCMD_tlm_mah[ESCCMD_MAX_ESC];         // ESC consumption (mAh)
+volatile uint16_t   ESCCMD_tlm_rpm[ESCCMD_MAX_ESC];         // ESC electrical rpm (100rpm)
+volatile uint8_t    ESCCMD_tlm[ESCCMD_MAX_ESC];             // Set to 1 when asking for telemetry
+volatile uint8_t    ESCCMD_tlm_pend[ESCCMD_MAX_ESC];        // Flag indicating a pending telemetry data request
+volatile uint8_t    ESCCMD_tlm_valid[ESCCMD_MAX_ESC];       // Flag indicating the validity of telemetry data
+
+volatile uint16_t   ESCCMD_tic_pend = 0;                    // Number of timer tic waiting for ackowledgement
+volatile uint8_t    ESCCMD_init_flag = 0;                   // Subsystem initialization flag
+volatile uint8_t    ESCCMD_timer_flag = 0;                  // Periodic loop enable/disable flag
+
+IntervalTimer       ESCCMD_timer;                           // Timer object
 
 //
 //  Initialization
@@ -78,20 +73,20 @@ void ESCCMD_init( void )  {
   if ( ESCCMD_init_flag )
     return;
 
-  // Initialize data structures to zero
+  // Initialize data arrays to zero
   for ( i = 0; i < ESCCMD_MAX_ESC; i++ ) {
-    ESCCMD[i].state       = 0;
-    ESCCMD[i].CRC_errors  = 0;
-    ESCCMD[i].last_error  = 0;
-    ESCCMD[i].cmd         = 0;
-    ESCCMD[i].tlm_deg     = 0;
-    ESCCMD[i].tlm_volt    = 0;
-    ESCCMD[i].tlm_amp     = 0;
-    ESCCMD[i].tlm_mah     = 0;
-    ESCCMD[i].tlm_rpm     = 0;
-    ESCCMD[i].tlm         = 0;
-    ESCCMD[i].tlm_pend    = 0;
-    ESCCMD[i].tlm_valid   = 0;
+    ESCCMD_state[i]       = 0;
+    ESCCMD_CRC_errors[i]  = 0;
+    ESCCMD_last_error[i]  = 0;
+    ESCCMD_cmd[i]         = 0;
+    ESCCMD_tlm_deg[i]     = 0;
+    ESCCMD_tlm_volt[i]    = 0;
+    ESCCMD_tlm_amp[i]     = 0;
+    ESCCMD_tlm_mah[i]     = 0;
+    ESCCMD_tlm_rpm[i]     = 0;
+    ESCCMD_tlm[i]         = 0;
+    ESCCMD_tlm_pend[i]    = 0;
+    ESCCMD_tlm_valid[i]   = 0;
   }
 
   // Initialize DSHOT generation subsystem
