@@ -8,6 +8,20 @@
 #ifndef __ESCCMD_H
 #define __ESCCMD_H
 
+// Function prototypes
+void    ESCCMD_init( void );
+int     ESCCMD_arm_all( void );
+int     ESCCMD_3D_on( void );
+int     ESCCMD_3D_off( void );
+int     ESCCMD_start_timer( void );
+int     ESCCMD_stop_timer( void );
+int     ESCCMD_throttle( uint8_t, int16_t );
+int     ESCCMD_read_RPM( uint8_t, *rpm );
+int     ESCCMD_tic( void );
+uint8_t ESCCMD_update_crc8( uint8_t, uint8_t );
+uint8_t ESCCMD_crc8( uint8_t*, uint8_t );
+void    ESCCMD_ISR_timer( void );
+
 // Defines
 #define ESCCMD_MAX_ESC          ESCPID_NB_ESC     // Max number of ESCs
 #define ESCCMD_NB_UART          6                 // Number of UARTS available
