@@ -14,6 +14,9 @@
 
 // Defines
 #define ESCPID_NB_ESC             DSHOT_MAX_OUTPUTS // Number of ESCs
+#if AWPID_MAX_NB < ESCPID_NB_ESC
+  #error AWPID_MAX_NB should be >= ESCPID_NB_ESC
+#endif
 
 #define ESCPID_USB_UART_SPEED     115200            // Baudrate of the teeensy USB serial link
 #define ESCPID_ERROR_MSG_LENGTH   80                // Max string length of an error message

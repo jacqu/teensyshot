@@ -9,10 +9,6 @@
  
 // Includes
 #include <math.h>
-#include "ESCPID.h"
-
-// Defines
-#define AWPID_MAX_NB          ESCPID_NB_ESC    // Maximum number of PIDs
 
 // Main structure definition
 typedef struct  {
