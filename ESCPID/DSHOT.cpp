@@ -54,6 +54,16 @@ volatile uint32_t*  DSHOT_DMA_chsc_teensy[DSHOT_NB_DMA_CHAN] ={   &FTM0_C0SC,
                                                                   &FTM0_C7SC };
 volatile uint32_t*  DSHOT_DMA_chsc[DSHOT_MAX_OUTPUTS];
 
+
+// Output pins
+volatile uint32_t*  DSHOT_DMA_pin_teensy[DSHOT_NB_DMA_CHAN] ={    &CORE_PIN22_CONFIG,
+                                                                  &CORE_PIN23_CONFIG,
+                                                                  &CORE_PIN6_CONFIG,
+                                                                  &CORE_PIN20_CONFIG,
+                                                                  &CORE_PIN21_CONFIG,
+                                                                  &CORE_PIN5_CONFIG };
+volatile uint32_t*  DSHOT_DMA_pin[DSHOT_MAX_OUTPUTS];
+
 // DMA objects
 DMAChannel          dma[DSHOT_MAX_OUTPUTS];
  
@@ -82,6 +92,7 @@ void DSHOT_init( void ) {
   for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ ) {
     DSHOT_DMA_chan[i] = DSHOT_DMA_chan_teensy[i];
     DSHOT_DMA_chsc[i] = DSHOT_DMA_chsc_teensy[i];
+    DSHOT_DMA_pin[i] = DSHOT_DMA_pin_teensy[i];
     }
   
   // Initialize DMA data
@@ -89,17 +100,13 @@ void DSHOT_init( void ) {
     for ( j = 0; j < DSHOT_MAX_OUTPUTS; j++ )
       DSHOT_dma_data[i][j] = 0;
 
-  // Configure pins 5, 6, 20, 21, 22, 23 on the board as DSHOT outputs
-  // These pins are configured as FlexTimer (FTM) PWM outputs (FTM0 channel 0-5)
+  // Configure pins on the board as DSHOT outputs
+  // These pins are configured as FlexTimer (FTM0) PWM outputs
   // PORT_PCR_DSE: high current output
   // PORT_PCR_SRE: slow slew rate
-  CORE_PIN22_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;  // FTM0_CH0
-  CORE_PIN23_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;  // FTM0_CH1
-  CORE_PIN6_CONFIG  = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;  // FTM0_CH4
-  CORE_PIN20_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;  // FTM0_CH5
-  CORE_PIN21_CONFIG = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;  // FTM0_CH6
-  CORE_PIN5_CONFIG  = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;  // FTM0_CH7
-  
+  for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ )
+    *DSHOT_DMA_pin[i] = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
+    
   // First DMA channel is the only one triggered by the bit clock
   dma[0].sourceBuffer( DSHOT_dma_data[0], DSHOT_DMA_LENGTH * sizeof( uint16_t ) );
   dma[0].destination( (uint16_t&) *DSHOT_DMA_chan[0] );
@@ -149,10 +156,6 @@ void DSHOT_init( void ) {
 //  Telemetry is requested with "tlm", CRC bits are added
 //
 //  Returns an error code in case of failure, 0 otherwise:
-//  -1: DMA error
-//  -2: Timeout : DMA duration is abnormally great
-//  -3: Value out of range
-//  -4: Internal error
 //
 int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
   int       i, j;
@@ -162,8 +165,8 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
   for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ ) {
 
     // Check cmd value
-    if ( cmd[i] > 2047 )
-      return -3;
+    if ( cmd[i] > DSHOT_MAX_VALUE )
+      return DSHOT_ERROR_RANGE;
 
     // Compute the packet to send
     // 11 first MSB = command
@@ -196,13 +199,13 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
   // Check only bits 3 and 4: non null if a clock source is set
   // TODO: test this error code
   if ( FTM0_SC & (3 << 3) )
-    return -2;
+    return DSHOT_ERROR_TIMEOUT;
 
   // Check if there is a DMA error
   // TODO: test this error code
   for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ )
     if ( dma[i].error( ) )
-      return -1;
+      return DSHOT_ERROR_DMA;
 
   return 0;
 }
