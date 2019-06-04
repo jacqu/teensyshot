@@ -49,7 +49,7 @@ char *ESCPID_error( const char *prefix, int ret ) {
       snprintf( ESCPID_error_msg, 
                 ESCPID_ERROR_MSG_LENGTH, "%s:%s", 
                 prefix,
-                "Invalid function call sequence error" );
+                "invalid function call sequence error" );
       break;
     case ESCCMD_ERROR_INIT:
       snprintf( ESCPID_error_msg, 
@@ -104,9 +104,6 @@ void setup() {
     ESCPID_Sat[i] = ESCPID_PID_SAT;
   }
   
-  // Initialize DSHOT subsystem
-  DSHOT_init( );
-  
   // Initialize PID subsystem
   AWPID_init( ESCPID_Kp, ESCPID_Ki, ESCPID_Kd, ESCPID_f, ESCPID_Sat );
   
@@ -155,13 +152,10 @@ void loop() {
     
     // Process timer event
     
-    // Read all measurements
+    // Read all measurements and compute current control signal
     for ( i = 0; i < ESCPID_NB_ESC; i++ )
-      if ( ( ret = ESCCMD_read_RPM( i, &ESCPID_Measurement[i] ) ) )
-        Serial.println( ESCPID_error( "ESCCMD_read_RPM", ret ) );
-    
-    // Compute current control signal
-    AWPID_control( ESCPID_Reference, ESCPID_Measurement, ESCPID_Control );
+      if ( !( ESCCMD_read_RPM( i, &ESCPID_Measurement[i] ) ) )
+        AWPID_control( ESCPID_Reference, ESCPID_Measurement, ESCPID_Control );
     
     // Send control signal
     for ( i = 0; i < ESCPID_NB_ESC; i++ )
