@@ -7,7 +7,7 @@
  *  Date:     May 2019
  */
 
-#include "ESCPID.h"
+#include "DSHOT.h"
 #include "ESCCMD.h"
 
 // enums: borrowed from betaflight pwm_output.h

@@ -1,7 +1,5 @@
 /*
  *  Global definitions for ESCPID
- *  NB: Arduino IDE automatically adds prototypes of functions
- *      found in all .ino files. 
  *
  */
 
@@ -9,5 +7,5 @@
 #define __ESCPID_H
 
 // Defines
-#define ESCPID_NB_ESC                  6                  // Number of ESCs
+#define ESCPID_NB_ESC         DSHOT_MAX_OUTPUTS            // Number of ESCs
 #endif

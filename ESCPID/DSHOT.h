@@ -10,7 +10,7 @@
 // Defines
 //
 
-#define DSHOT_MAX_OUTPUTS         ESCPID_NB_ESC // Maximum number of DSHOT outputs
+#define DSHOT_MAX_OUTPUTS         6             // Maximum number of DSHOT outputs on teensy 3.5
 #define DSHOT_NB_DMA_CHAN         6             // Number of accessible DMA channels
 #if DSHOT_NB_DMA_CHAN < DSHOT_MAX_OUTPUTS
   #error ESCCMD_NB_UART should be >= DSHOT_MAX_OUTPUTS

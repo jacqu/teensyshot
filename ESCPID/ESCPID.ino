@@ -8,18 +8,21 @@
  */
 
 #include <Arduino.h>
-#include "ESCPID.h"
+#include "DSHOT.h"
 #include "ESCCMD.h"
+#include "AWPID.h"
 
 // Defines
-#define ESCPID_USB_UART_SPEED           115200      // Baudrate of the teeensy USB serial link
-#define ESCPID_ERROR_MSG_LENGTH         80          // Max string length of an error message
+#define ESCPID_NB_ESC             DSHOT_MAX_OUTPUTS // Number of ESCs
 
-#define ESCPID_PID_P                    1.0         // PID proportional gain
-#define ESCPID_PID_I                    1.0         // PID integral gain
-#define ESCPID_PID_D                    0.0         // PID derivative gain
-#define ESCPID_PID_f                    0.0         // PID derivative filtering pole
-#define ESCPID_PID_SAT                  999.0       // PID control input saturtion value
+#define ESCPID_USB_UART_SPEED     115200            // Baudrate of the teeensy USB serial link
+#define ESCPID_ERROR_MSG_LENGTH   80                // Max string length of an error message
+
+#define ESCPID_PID_P              1.0               // PID proportional gain
+#define ESCPID_PID_I              1.0               // PID integral gain
+#define ESCPID_PID_D              0.0               // PID derivative gain
+#define ESCPID_PID_f              0.0               // PID derivative filtering pole
+#define ESCPID_PID_SAT            999.0             // PID control input saturtion value
 
 // Globals
 double  ESCPID_Reference[ESCPID_NB_ESC] = {};

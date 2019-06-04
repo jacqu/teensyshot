@@ -7,7 +7,6 @@
  *  Date:     May 2019
  */
 
-#include <Arduino.h>
 #include "DMAChannel.h"
 #include "DSHOT.h"
 
