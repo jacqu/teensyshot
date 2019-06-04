@@ -11,6 +11,10 @@
 //
 
 #define DSHOT_MAX_OUTPUTS         ESCPID_NB_ESC // Maximum number of DSHOT outputs
+#define DSHOT_NB_DMA_CHAN         6             // Number of accessible DMA channels
+#if DSHOT_NB_DMA_CHAN < DSHOT_MAX_OUTPUTS
+  #error ESCCMD_NB_UART should be >= DSHOT_MAX_OUTPUTS
+#endif
 #define DSHOT_DMA_LENGTH          18            // Number of steps of one DMA sequence (the two last values are zero)
 #define DSHOT_DMA_MARGIN          2              // Number of additional bit duration to wait until checking if DMA is over
 #define DSHOT_DSHOT_LENGTH        16            // Number of bits in a DSHOT sequence
