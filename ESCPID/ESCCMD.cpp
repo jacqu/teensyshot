@@ -476,7 +476,7 @@ int ESCCMD_tic( void )  {
 
         // Read packet
         for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
-          bufferTlm[i] = ESCCMD_serial[i].read( );
+          bufferTlm[j] = ESCCMD_serial[i].read( );
 
         // If a packet has arrived, process it
 
