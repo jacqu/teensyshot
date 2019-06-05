@@ -133,14 +133,14 @@ int ESCCMD_arm_all( void )  {
   }
 
   // Send command ESCCMD_CMD_REPETITION times
-  for ( i = 0; i < ESCCMD_CMD_REPETITION; i++ )  {
+  for ( i = 0; i < ESCCMD_CMD_ARMING_REPETITION; i++ )  {
 
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
       return ESCCMD_ERROR_DSHOT;
 
     // Wait some time
-    delayMicroseconds( ESCCMD_CMD_DELAY );
+    delayMicroseconds( 2*ESCCMD_CMD_DELAY );
   }
 
   // Set the arming flag
@@ -179,7 +179,7 @@ int ESCCMD_3D_on( void )  {
   // Define 3D on command
   for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_3D_MODE_ON;
-    ESCCMD_tlm[i] = 0;
+    ESCCMD_tlm[i] = 1;
   }
 
   // Send command ESCCMD_CMD_REPETITION times
@@ -196,7 +196,7 @@ int ESCCMD_3D_on( void )  {
   // Define save settings command
   for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_SAVE_SETTINGS;
-    ESCCMD_tlm[i] = 0;
+    ESCCMD_tlm[i] = 1;
   }
 
   // Send command ESCCMD_CMD_REPETITION times
@@ -216,6 +216,10 @@ int ESCCMD_3D_on( void )  {
 
   // Minimum delay before next command
   delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
+
+  // ESC is disarmed after previous delay
+  for ( i = 0; i < ESCCMD_max; i++ )
+    ESCCMD_state[i] &= !(ESCCMD_STATE_ARMED);
 
   return 0;
 }
@@ -249,7 +253,7 @@ int ESCCMD_3D_off( void )  {
   // Define 3D off command
   for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_3D_MODE_OFF;
-    ESCCMD_tlm[i] = 0;
+    ESCCMD_tlm[i] = 1;
   }
 
   // Send command ESCCMD_CMD_REPETITION times
@@ -266,7 +270,7 @@ int ESCCMD_3D_off( void )  {
   // Define save settings command
   for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_SAVE_SETTINGS;
-    ESCCMD_tlm[i] = 0;
+    ESCCMD_tlm[i] = 1;
   }
 
   // Send command ESCCMD_CMD_REPETITION times
@@ -283,6 +287,13 @@ int ESCCMD_3D_off( void )  {
   // Clear the 3D mode flag
   for ( i = 0; i < ESCCMD_max; i++ )
     ESCCMD_state[i] &= ~(ESCCMD_STATE_3D);
+
+  // Minimum delay before next command
+  delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
+
+  // ESC is disarmed after previous delay
+  for ( i = 0; i < ESCCMD_max; i++ )
+    ESCCMD_state[i] &= !(ESCCMD_STATE_ARMED);
 
   return 0;
 }
