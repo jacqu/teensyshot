@@ -122,11 +122,11 @@ void DSHOT_init( int n ) {
   // FTM0_CNSC: status and control register
   // FTM_CSC_MSB | FTM_CSC_ELSB:
   // edge aligned PWM with high-true pulses
-  for ( i = 1; i < DSHOT_max; i++ )
+  for ( i = 0; i < DSHOT_max; i++ )
     *DSHOT_DMA_chsc_teensy[i] = FTM_CSC_MSB | FTM_CSC_ELSB;
 
   // FTM0_CNV = 0: initialize the counter channel N at 0
-  for ( i = 1; i < DSHOT_max; i++ )
+  for ( i = 0; i < DSHOT_max; i++ )
     *DSHOT_DMA_chan_teensy[i] = 0;
 
   // FTM0 channel 2 is the main clock
@@ -171,7 +171,7 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
     data |= ( ( data >> 4 ) ^ ( data >> 8 ) ^ ( data >> 12 ) ) & 0x0f;
 
     // Generate DSHOT timings corresponding to the packet
-    for ( j = 0; j < DSHOT_max; j++ )  {
+    for ( j = 0; j < DSHOT_DSHOT_LENGTH; j++ )  {
       if ( data & ( 1 << ( DSHOT_DSHOT_LENGTH - 1 - j ) ) )
         DSHOT_dma_data[i][j] = DSHOT_long_pulse;
       else
