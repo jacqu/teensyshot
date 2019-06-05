@@ -7,7 +7,6 @@
  *  Date:     May 2019
  */
 
-#include "DSHOT.h"
 #include "ESCCMD.h"
 
 // enums: borrowed from betaflight pwm_output.h
@@ -45,18 +44,20 @@ typedef enum {
 //
 //  Global variables
 //
+int ESCCMD_max;
+
 volatile uint16_t   ESCCMD_state[ESCCMD_MAX_ESC];           // Current state of the cmd subsystem
-volatile uint16_t   ESCCMD_CRC_errors[ESCCMD_MAX_ESC];      // Overall number of CRC error since start
-volatile int16_t    ESCCMD_last_error[ESCCMD_MAX_ESC];      // Last error code
-volatile uint16_t   ESCCMD_cmd[ESCCMD_MAX_ESC];             // Last command
-volatile uint8_t    ESCCMD_tlm_deg[ESCCMD_MAX_ESC];         // ESC temperature (°C)
-volatile uint16_t   ESCCMD_tlm_volt[ESCCMD_MAX_ESC];        // Voltage of the ESC power supply (0.01V)
-volatile uint16_t   ESCCMD_tlm_amp[ESCCMD_MAX_ESC];         // ESC current (0.01A)
-volatile uint16_t   ESCCMD_tlm_mah[ESCCMD_MAX_ESC];         // ESC consumption (mAh)
-volatile uint16_t   ESCCMD_tlm_rpm[ESCCMD_MAX_ESC];         // ESC electrical rpm (100rpm)
-volatile uint8_t    ESCCMD_tlm[ESCCMD_MAX_ESC];             // Set to 1 when asking for telemetry
-volatile uint8_t    ESCCMD_tlm_pend[ESCCMD_MAX_ESC];        // Flag indicating a pending telemetry data request
-volatile uint8_t    ESCCMD_tlm_valid[ESCCMD_MAX_ESC];       // Flag indicating the validity of telemetry data
+uint16_t   ESCCMD_CRC_errors[ESCCMD_MAX_ESC];      // Overall number of CRC error since start
+int16_t    ESCCMD_last_error[ESCCMD_MAX_ESC];      // Last error code
+uint16_t   ESCCMD_cmd[ESCCMD_MAX_ESC];             // Last command
+uint8_t    ESCCMD_tlm_deg[ESCCMD_MAX_ESC];         // ESC temperature (°C)
+uint16_t   ESCCMD_tlm_volt[ESCCMD_MAX_ESC];        // Voltage of the ESC power supply (0.01V)
+uint16_t   ESCCMD_tlm_amp[ESCCMD_MAX_ESC];         // ESC current (0.01A)
+uint16_t   ESCCMD_tlm_mah[ESCCMD_MAX_ESC];         // ESC consumption (mAh)
+uint16_t   ESCCMD_tlm_rpm[ESCCMD_MAX_ESC];         // ESC electrical rpm (100rpm)
+uint8_t    ESCCMD_tlm[ESCCMD_MAX_ESC];             // Set to 1 when asking for telemetry
+uint8_t    ESCCMD_tlm_pend[ESCCMD_MAX_ESC];        // Flag indicating a pending telemetry data request
+uint8_t    ESCCMD_tlm_valid[ESCCMD_MAX_ESC];       // Flag indicating the validity of telemetry data
 
 volatile uint16_t   ESCCMD_tic_pend = 0;                    // Number of timer tic waiting for ackowledgement
 volatile uint8_t    ESCCMD_init_flag = 0;                   // Subsystem initialization flag
@@ -73,14 +74,16 @@ HardwareSerial      ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
 //
 //  Initialization
 //
-void ESCCMD_init( void )  {
+void ESCCMD_init( int n )  {
   static int i;
 
   if ( ESCCMD_init_flag )
     return;
 
+  ESCCMD_max = n;
+
   // Initialize data arrays to zero
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ ) {
+  for ( i = 0; i < ESCCMD_max; i++ ) {
     ESCCMD_state[i]       = 0;
     ESCCMD_CRC_errors[i]  = 0;
     ESCCMD_last_error[i]  = 0;
@@ -96,10 +99,10 @@ void ESCCMD_init( void )  {
   }
 
   // Initialize DSHOT generation subsystem
-  DSHOT_init( );
+  DSHOT_init( ESCCMD_max );
 
   // Initialize telemetry UART channels
-  for ( i = 0; i < ESCCMD_NB_UART; i++ )
+  for ( i = 0; i < ESCCMD_max; i++ )
     ESCCMD_serial[i].begin( ESCCMD_TLM_UART_SPEED );
 
   // Set the initialization flag
@@ -119,12 +122,12 @@ int ESCCMD_arm_all( void )  {
     return ESCCMD_ERROR_INIT;
 
   // Check if all the ESCs are in the initial state
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+  for ( i = 0; i < ESCCMD_max; i++ )
     if ( ESCCMD_state[i] & ESCCMD_STATE_ARMED )
       return ESCCMD_ERROR_SEQ;
 
   // Define stop command
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
     ESCCMD_tlm[i] = 0;
   }
@@ -141,7 +144,7 @@ int ESCCMD_arm_all( void )  {
   }
 
   // Set the arming flag
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+  for ( i = 0; i < ESCCMD_max; i++ )
     ESCCMD_state[i] |= ESCCMD_STATE_ARMED;
 
   return 0;
@@ -159,7 +162,7 @@ int ESCCMD_3D_on( void )  {
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
 
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     // Check if all the ESCs are armed
     if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
       return ESCCMD_ERROR_SEQ;
@@ -174,7 +177,7 @@ int ESCCMD_3D_on( void )  {
   }
 
   // Define 3D on command
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_3D_MODE_ON;
     ESCCMD_tlm[i] = 0;
   }
@@ -191,7 +194,7 @@ int ESCCMD_3D_on( void )  {
   }
 
   // Define save settings command
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_SAVE_SETTINGS;
     ESCCMD_tlm[i] = 0;
   }
@@ -208,7 +211,7 @@ int ESCCMD_3D_on( void )  {
   }
 
   // Set the 3D mode flag
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+  for ( i = 0; i < ESCCMD_max; i++ )
     ESCCMD_state[i] |= ESCCMD_STATE_3D;
 
   // Minimum delay before next command
@@ -229,7 +232,7 @@ int ESCCMD_3D_off( void )  {
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
 
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     // Check if all the ESCs are armed
     if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
       return ESCCMD_ERROR_SEQ;
@@ -244,7 +247,7 @@ int ESCCMD_3D_off( void )  {
   }
 
   // Define 3D off command
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_3D_MODE_OFF;
     ESCCMD_tlm[i] = 0;
   }
@@ -261,7 +264,7 @@ int ESCCMD_3D_off( void )  {
   }
 
   // Define save settings command
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_SAVE_SETTINGS;
     ESCCMD_tlm[i] = 0;
   }
@@ -278,7 +281,7 @@ int ESCCMD_3D_off( void )  {
   }
 
   // Clear the 3D mode flag
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+  for ( i = 0; i < ESCCMD_max; i++ )
     ESCCMD_state[i] &= ~(ESCCMD_STATE_3D);
 
   return 0;
@@ -301,7 +304,7 @@ int ESCCMD_start_timer( void )  {
     return ESCCMD_ERROR_SEQ;
 
   // Checks
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     // Check if all the ESCs are armed
     if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
       return ESCCMD_ERROR_SEQ;
@@ -312,7 +315,7 @@ int ESCCMD_start_timer( void )  {
   }
 
   // Initialize ESC structure
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = 0;
     ESCCMD_tlm[i] = 1;
     ESCCMD_tlm_pend[i] = 0;
@@ -349,7 +352,7 @@ int ESCCMD_stop_timer( void )  {
   ESCCMD_timer_flag = 0;
 
   // Update ESC state
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     ESCCMD_cmd[i] = 0;
     ESCCMD_tlm[i] = 0;
     ESCCMD_state[i] &= ~( ESCCMD_STATE_ARMED | ESCCMD_STATE_START );
@@ -365,7 +368,7 @@ int ESCCMD_stop_timer( void )  {
 //
 int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
   static uint8_t local_state;
-  
+
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
@@ -409,7 +412,7 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
     ESCCMD_state[i] |= ESCCMD_STATE_START;
     interrupts();
   }
-  
+
   return 0;
 }
 
@@ -419,7 +422,7 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
 //
 int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
   static uint8_t local_state;
-  
+
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
@@ -463,14 +466,14 @@ int ESCCMD_tic( void )  {
   static int      i, j, ret;
   static uint8_t  bufferTlm[ESCCMD_TLM_LENGTH];
   static uint16_t local_tic_pend;
-  
+
   // Defaults to no error
   ret = 0;
-  
+
   // Read telemetry if packets are pending
-  for ( i = 0; i < ESCCMD_MAX_ESC; i++ )  {
+  for ( i = 0; i < ESCCMD_max; i++ )  {
     if ( ESCCMD_tlm_pend[i] ) {
-      
+
       // Check if a complete packet has arrived
       if ( ESCCMD_serial[i].available( ) == ESCCMD_TLM_LENGTH )  {
 
@@ -500,7 +503,7 @@ int ESCCMD_tic( void )  {
           // Wait for last out of sync bytes to come in
           for ( j = 0; j < ESCCMD_tlm_pend[i] + 1; j++ )
             delayMicroseconds( ESCCMD_TIMER_PERIOD );
-          
+
           // Reset pending packet counter: all packets should be arrived
           ESCCMD_tlm_pend[i] = 0;
 
@@ -532,7 +535,7 @@ int ESCCMD_tic( void )  {
       return ESCCMD_ERROR_INIT;
 
     // Check if all ESC are armed
-    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+    for ( i = 0; i < ESCCMD_max; i++ )
       if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
         return ESCCMD_ERROR_SEQ;
 
@@ -542,7 +545,7 @@ int ESCCMD_tic( void )  {
     delayMicroseconds( ESCCMD_CMD_DELAY );
 
     // Update telemetry packet pending counter
-    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+    for ( i = 0; i < ESCCMD_max; i++ )
       if ( ESCCMD_tlm[i] )
         ESCCMD_tlm_pend[i]++;
   }
@@ -555,8 +558,7 @@ int ESCCMD_tic( void )  {
 //
 uint8_t ESCCMD_update_crc8( uint8_t crc, uint8_t crc_seed ) {
   static uint8_t crc_u;
-  static crc_u;
-  
+
   crc_u = crc;
   crc_u ^= crc_seed;
 
@@ -569,9 +571,9 @@ uint8_t ESCCMD_update_crc8( uint8_t crc, uint8_t crc_seed ) {
 
 uint8_t ESCCMD_crc8( uint8_t* buf, uint8_t buflen ) {
   static uint8_t crc;
-  
+
   crc = 0;
-  
+
   for ( int i = 0; i < buflen; i++ ) {
     crc = ESCCMD_update_crc8( buf[i], crc );
   }
@@ -587,9 +589,9 @@ void ESCCMD_ISR_timer( void ) {
 
   // Check for maximum missed tics (ESC watchdog timer = 250ms on a KISS ESC)
   if ( ESCCMD_tic_pend >= ESCCMD_TIMER_MAX_MISS )  {
-    
+
     // ESC watchdog switch to disarmed and stopped mode
-    for ( i = 0; i < ESCCMD_MAX_ESC; i++ )
+    for ( i = 0; i < ESCCMD_max; i++ )
       ESCCMD_state[i] &= ~( ESCCMD_STATE_ARMED | ESCCMD_STATE_START );
   }
   else

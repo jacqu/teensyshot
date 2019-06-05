@@ -1,26 +1,16 @@
 /*
  *  Global definitions for ESCCMD
  *  NB: Arduino IDE automatically adds prototypes of functions
- *      found in all .ino files. 
+ *      found in all .ino files.
  *
  */
 
 #ifndef __ESCCMD_H
 #define __ESCCMD_H
 
-// Function prototypes
-void    ESCCMD_init( void );
-int     ESCCMD_arm_all( void );
-int     ESCCMD_3D_on( void );
-int     ESCCMD_3D_off( void );
-int     ESCCMD_start_timer( void );
-int     ESCCMD_stop_timer( void );
-int     ESCCMD_throttle( uint8_t, int16_t );
-int     ESCCMD_read_RPM( uint8_t, *rpm );
-int     ESCCMD_tic( void );
-uint8_t ESCCMD_update_crc8( uint8_t, uint8_t );
-uint8_t ESCCMD_crc8( uint8_t*, uint8_t );
-void    ESCCMD_ISR_timer( void );
+// Includes
+#include <Arduino.h>
+#include "DSHOT.h"
 
 // Defines
 #define ESCCMD_MAX_ESC          DSHOT_MAX_OUTPUTS // Max number of ESCs
@@ -36,7 +26,7 @@ void    ESCCMD_ISR_timer( void );
 
 #define ESCCMD_CMD_REPETITION   10                // Number of time commands have to be repeated to be acknowledged by ESC
 #define ESCCMD_CMD_DELAY        10                // Delay between two consecutive DSHOT transmissions (us)
-#define ESCCMD_CMD_SAVE_DELAY   35000             // Minimum time to wait after a save command (us) 
+#define ESCCMD_CMD_SAVE_DELAY   35000             // Minimum time to wait after a save command (us)
 
 #define ESCCMD_TIMER_PERIOD     2000              // Periodic loop period (us)
 #define ESCCMD_ESC_WATCHDOG     250000            // ESC arming watchdog timer (us)
@@ -57,5 +47,20 @@ void    ESCCMD_ISR_timer( void );
 #define ESCCMD_ERROR_TLM_INVAL  -6                // Invalid telemetry error
 
 #define ESCCMD_TIC_OCCURED      1                 // A new timer tic has occured
+
+// Function prototypes
+void    ESCCMD_init( int );
+int     ESCCMD_arm_all( void );
+int     ESCCMD_3D_on( void );
+int     ESCCMD_3D_off( void );
+int     ESCCMD_start_timer( void );
+int     ESCCMD_stop_timer( void );
+int     ESCCMD_throttle( uint8_t, int16_t );
+int     ESCCMD_read_RPM( uint8_t, double* );
+int     ESCCMD_tic( void );
+uint8_t ESCCMD_update_crc8( uint8_t, uint8_t );
+uint8_t ESCCMD_crc8( uint8_t*, uint8_t );
+void    ESCCMD_ISR_timer( void );
+
 
 #endif

@@ -6,10 +6,11 @@
 #ifndef __DSHOT_H
 #define __DSHOT_H
 
-//
-// Defines
-//
+// Includes
+#include <Arduino.h>
+#include "DMAChannel.h"
 
+// Defines
 #define DSHOT_MAX_OUTPUTS         6             // Maximum number of DSHOT outputs on teensy 3.5
 #define DSHOT_NB_DMA_CHAN         6             // Number of accessible DMA channels
 #if DSHOT_NB_DMA_CHAN < DSHOT_MAX_OUTPUTS
@@ -27,5 +28,9 @@
 #define DSHOT_ERROR_TIMEOUT       -2            // Timeout : DMA duration is abnormally great
 #define DSHOT_ERROR_RANGE         -3            // Value out of range
 #define DSHOT_ERROR_INTERNAL      -4            // Internal error
+
+// Function prototypes
+void DSHOT_init( int );
+int DSHOT_send( uint16_t*, uint8_t* );
 
 #endif
