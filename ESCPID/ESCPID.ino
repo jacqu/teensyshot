@@ -101,6 +101,8 @@ void setup() {
   // Initialize USB serial link
   Serial.begin( ESCPID_USB_UART_SPEED );
 
+  while (!Serial);
+
   // Initialize PID gains
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
     ESCPID_Kp[i] =  ESCPID_PID_P;
@@ -111,7 +113,7 @@ void setup() {
   }
 
   // Initialize PID subsystem
-  AWPID_init( ESCPID_Kp, ESCPID_Ki, ESCPID_Kd, ESCPID_f, ESCPID_Sat, ESCPID_NB_ESC );
+  //AWPID_init( ESCPID_Kp, ESCPID_Ki, ESCPID_Kd, ESCPID_f, ESCPID_Sat, ESCPID_NB_ESC );
 
   // Initialize the CMD subsystem
   ESCCMD_init( ESCPID_NB_ESC );
@@ -129,6 +131,13 @@ void setup() {
   // Process error
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_3D_on", ret ) );
+
+  // Arming ESCs
+  ret = ESCCMD_arm_all( );
+
+  // Process error
+  if ( ret )
+    Serial.println( ESCPID_error( "ESCCMD_arm_all", ret ) );
 
   // Start periodic loop
   ret = ESCCMD_start_timer( );
