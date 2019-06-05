@@ -167,10 +167,6 @@ int ESCCMD_3D_on( void )  {
     if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
       return ESCCMD_ERROR_SEQ;
 
-    // Check if ESCs are already in 3D mode
-    if ( ESCCMD_state[i] & ESCCMD_STATE_3D )
-      return ESCCMD_ERROR_SEQ;
-
     // Check if ESCs are stopped
     if ( ESCCMD_state[i] & ESCCMD_STATE_START )
       return ESCCMD_ERROR_SEQ;
