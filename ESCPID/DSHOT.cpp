@@ -34,7 +34,8 @@ const uint16_t DSHOT_bit_length   = uint64_t(F_BUS) * DSHOT_BT_DURATION / 100000
 //  Global variables
 //
 
-int DSHOT_max;
+// Number of initialized DSHOT outputs
+uint8_t             DSHOT_n;
 
 // DMA FTM channel values references
 volatile uint32_t*  DSHOT_DMA_chan_teensy[DSHOT_NB_DMA_CHAN] ={   &FTM0_C0V,
@@ -87,11 +88,14 @@ void DSHOT_DMA_interrupt_routine( void ) {
 //
 void DSHOT_init( int n ) {
   int i, j;
-
-  DSHOT_max = n;
-
+  
+  if ( n <= DSHOT_MAX_OUTPUTS )
+    DSHOT_n = n;
+  else
+    DSHOT_n = DSHOT_MAX_OUTPUTS;
+    
   // Initialize DMA data
-  for ( i = 0; i < DSHOT_max; i++ )
+  for ( i = 0; i < DSHOT_n; i++ )
     for ( j = 0; j < DSHOT_DMA_LENGTH; j++ )
       DSHOT_dma_data[i][j] = 0;
 
@@ -99,7 +103,7 @@ void DSHOT_init( int n ) {
   // These pins are configured as FlexTimer (FTM0) PWM outputs
   // PORT_PCR_DSE: high current output
   // PORT_PCR_SRE: slow slew rate
-  for ( i = 0; i < DSHOT_max; i++ )
+  for ( i = 0; i < DSHOT_n; i++ )
     *DSHOT_DMA_pin_teensy[i] = PORT_PCR_MUX(4) | PORT_PCR_DSE | PORT_PCR_SRE;
 
   // First DMA channel is the only one triggered by the bit clock
@@ -111,7 +115,7 @@ void DSHOT_init( int n ) {
   dma[0].enable( );
 
   // Other DMA channels are trigered by the previoux DMA channel
-  for ( i = 1; i < DSHOT_max; i++ ) {
+  for ( i = 1; i < DSHOT_n; i++ ) {
     dma[i].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH * sizeof( uint16_t ) );
     dma[i].destination( (uint16_t&) *DSHOT_DMA_chan_teensy[i] );
     dma[i].triggerAtTransfersOf( dma[i-1] );
@@ -122,11 +126,11 @@ void DSHOT_init( int n ) {
   // FTM0_CNSC: status and control register
   // FTM_CSC_MSB | FTM_CSC_ELSB:
   // edge aligned PWM with high-true pulses
-  for ( i = 0; i < DSHOT_max; i++ )
+  for ( i = 0; i < DSHOT_n; i++ )
     *DSHOT_DMA_chsc_teensy[i] = FTM_CSC_MSB | FTM_CSC_ELSB;
 
   // FTM0_CNV = 0: initialize the counter channel N at 0
-  for ( i = 0; i < DSHOT_max; i++ )
+  for ( i = 0; i < DSHOT_n; i++ )
     *DSHOT_DMA_chan_teensy[i] = 0;
 
   // FTM0 channel 2 is the main clock
@@ -157,7 +161,7 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
   uint16_t  data;
 
   // Initialize DMA buffers
-  for ( i = 0; i < DSHOT_max; i++ ) {
+  for ( i = 0; i < DSHOT_n; i++ ) {
 
     // Check cmd value
     if ( cmd[i] > DSHOT_MAX_VALUE )
@@ -180,7 +184,7 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
   }
 
   // Clear error flag on all DMA channels
-  for ( i = 0; i < DSHOT_max; i++ )
+  for ( i = 0; i < DSHOT_n; i++ )
     dma[i].clearError( );
 
   // Start DMA by activating the clock
@@ -198,7 +202,7 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
 
   // Check if there is a DMA error
   // TODO: test this error code
-  for ( i = 0; i < DSHOT_max; i++ )
+  for ( i = 0; i < DSHOT_n; i++ )
     if ( dma[i].error( ) )
       return DSHOT_ERROR_DMA;
 
