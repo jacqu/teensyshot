@@ -13,10 +13,7 @@
 #include "AWPID.h"
 
 // Defines
-#define ESCPID_NB_ESC             1 // Number of ESCs
-/*#if AWPID_MAX_NB < ESCPID_NB_ESC
-  #error AWPID_MAX_NB should be >= ESCPID_NB_ESC
-#endif*/
+#define ESCPID_NB_ESC             1                 // Number of ESCs
 
 #define ESCPID_USB_UART_SPEED     115200            // Baudrate of the teeensy USB serial link
 #define ESCPID_ERROR_MSG_LENGTH   80                // Max string length of an error message
@@ -100,8 +97,9 @@ void setup() {
 
   // Initialize USB serial link
   Serial.begin( ESCPID_USB_UART_SPEED );
-
-  while (!Serial);
+  
+  // Wait for serial link to initialize
+  while ( !Serial );
 
   // Initialize PID gains
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
