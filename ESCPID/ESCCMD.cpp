@@ -42,7 +42,7 @@ HardwareSerial      ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
 //
 //  Initialization
 //
-void ESCCMD_init( int n )  {
+void ESCCMD_init( uint8_t n )  {
   static int i;
 
   if ( ESCCMD_init_flag )

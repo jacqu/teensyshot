@@ -13,7 +13,7 @@
 #include <math.h>
 
 // Function prototypes
-void AWPID_init( double*, double*, double*, double*, double*, int );
+void AWPID_init( uint8_t n, double*, double*, double*, double*, double* );
 void AWPID_control( double*, double*, double* );
 
 #endif

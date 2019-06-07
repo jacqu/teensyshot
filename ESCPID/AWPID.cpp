@@ -39,12 +39,12 @@ uint8_t AWPID_n;        // Number of initialized PIDs
 //
 //  C(z) = Kp + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f )
 //
-void AWPID_init(    double  *Kp,
+void AWPID_init(    uint8_t n,
+                    double  *Kp,
                     double  *Ki,
                     double  *Kd,
                     double  *f,
-                    double  *Sat,
-                    int n
+                    double  *Sat
                      )  {
 
   int      i;
