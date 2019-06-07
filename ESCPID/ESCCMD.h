@@ -35,6 +35,7 @@
                                                   // Maximum missed tics before watchdog is triggered
 #define ESCCMD_TLM_UART_SPEED   115200            // Baudrate of the telemetry serial transmission
 #define ESCCMD_TLM_LENGTH       10                // Number of bytes in the telemetry packet
+#define ESCCMD_TLM_MAX_PEND     1                 // Maximum number of telemetry packet pending
 
 #define ESCCMD_MAX_THROTTLE     1999              // Max default throttle value
 #define ESCCMD_MAX_3D_THROTTLE  999               // Max 3D throttle value
@@ -45,8 +46,9 @@
 #define ESCCMD_ERROR_SEQ        -2                // Invalid function call sequence error
 #define ESCCMD_ERROR_INIT       -3                // Call of non initialized function
 #define ESCCMD_ERROR_PARAM      -4                // Invalid parameter error
-#define ESCCMD_ERROR_CRC        -5                // CRC error
+#define ESCCMD_ERROR_TLM_CRC    -5                // CRC error in telemetry packet
 #define ESCCMD_ERROR_TLM_INVAL  -6                // Invalid telemetry error
+#define ESCCMD_ERROR_TLM_PEND   -7                // Maximum number of pending telemetry packet reached
 
 #define ESCCMD_TIC_OCCURED      1                 // A new timer tic has occured
 

@@ -489,13 +489,21 @@ int ESCCMD_tic( void )  {
 
   // Defaults to no error
   ret = 0;
-
+  
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_n; i++ )  {
+  
+    // Check number of telemetry packet pendng
+    if ( ESCCMD_tlm_pend[i] > ESCCMD_TLM_MAX_PEND )
+      ret = ESCCMD_ERROR_TLM_PEND;
+    
+    // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
+      // Update pending packet counter
+        ESCCMD_tlm_pend[i]--;
 
       // Check if a complete packet has arrived
-      if ( ESCCMD_serial[i].available( ) == ESCCMD_TLM_LENGTH )  {
+      if ( ESCCMD_serial[i].available( ) >= ESCCMD_TLM_LENGTH )  {
 
         // Read packet
         for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
@@ -510,15 +518,12 @@ int ESCCMD_tic( void )  {
         ESCCMD_tlm_rpm[i]     = ( bufferTlm[7] << 8 ) | bufferTlm[8];
         ESCCMD_tlm_valid[i]   = ( bufferTlm[9] == ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 ) );
 
-        // Update pending packet counter
-        ESCCMD_tlm_pend[i]--;
-
         // If crc is invalid, increment crc error counter
         // and flush UART buffer
         if ( !ESCCMD_tlm_valid[i] ) {
 
           ESCCMD_CRC_errors[i]++;
-          ret = ESCCMD_ERROR_CRC;
+          ret = ESCCMD_ERROR_TLM_CRC;
 
           // Wait for last out of sync bytes to come in
           for ( j = 0; j < ESCCMD_tlm_pend[i] + 1; j++ )
