@@ -227,7 +227,7 @@ int ESCCMD_3D_on( void )  {
 
   // ESC is disarmed after previous delay
   for ( i = 0; i < ESCCMD_n; i++ )
-    ESCCMD_state[i] &= !(ESCCMD_STATE_ARMED);
+    ESCCMD_state[i] &= ~(ESCCMD_STATE_ARMED);
 
   return 0;
 }
@@ -293,7 +293,7 @@ int ESCCMD_3D_off( void )  {
 
   // ESC is disarmed after previous delay
   for ( i = 0; i < ESCCMD_n; i++ )
-    ESCCMD_state[i] &= !(ESCCMD_STATE_ARMED);
+    ESCCMD_state[i] &= ~(ESCCMD_STATE_ARMED);
 
   return 0;
 }
