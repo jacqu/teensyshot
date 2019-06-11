@@ -55,7 +55,7 @@ char *ESCPID_error( const char *prefix, int ret ) {
                 prefix,
                 "invalid parameter error" );
       break;
-    case ESCCMD_ERROR_CRC:
+    case ESCCMD_ERROR_TLM_CRC:
       snprintf( ESCPID_error_msg,
                 ESCPID_ERROR_MSG_LENGTH, "%s:%s",
                 prefix,
@@ -86,7 +86,7 @@ void setup() {
 
   // Initialize USB serial link
   Serial.begin( ESCPID_USB_UART_SPEED );
-  
+
   // Wait for serial link to initialize
   while ( !Serial );
 
@@ -100,7 +100,7 @@ void setup() {
   }
 
   // Initialize PID subsystem
-  //AWPID_init( ESCPID_Kp, ESCPID_Ki, ESCPID_Kd, ESCPID_f, ESCPID_Sat, ESCPID_NB_ESC );
+  AWPID_init( ESCPID_NB_ESC, ESCPID_Kp, ESCPID_Ki, ESCPID_Kd, ESCPID_f, ESCPID_Sat );
 
   // Initialize the CMD subsystem
   ESCCMD_init( ESCPID_NB_ESC );
