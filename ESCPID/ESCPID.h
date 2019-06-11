@@ -2,9 +2,15 @@
  *  Definitions for ESCPID.ino
  *
  */
- 
+
 #ifndef __ESCPID_H
 #define __ESCPID_H
+
+// Includes
+#include <Arduino.h>
+#include "DSHOT.h"
+#include "ESCCMD.h"
+#include "AWPID.h"
 
 // Defines
 #define ESCPID_NB_ESC             1                 // Number of ESCs
