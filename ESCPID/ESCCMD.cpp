@@ -7,6 +7,9 @@
  *  Date:     May 2019
  */
 
+// Includes
+#include <Arduino.h>
+#include "DSHOT.h"
 #include "ESCCMD.h"
 
 //

@@ -7,6 +7,9 @@
  *  Date:     May 2019
  */
 
+// Includes
+#include <Arduino.h>
+#include "DMAChannel.h"
 #include "DSHOT.h"
 
 //
@@ -88,12 +91,12 @@ void DSHOT_DMA_interrupt_routine( void ) {
 //
 void DSHOT_init( int n ) {
   int i, j;
-  
+
   if ( n <= DSHOT_MAX_OUTPUTS )
     DSHOT_n = n;
   else
     DSHOT_n = DSHOT_MAX_OUTPUTS;
-    
+
   // Initialize DMA data
   for ( i = 0; i < DSHOT_n; i++ )
     for ( j = 0; j < DSHOT_DMA_LENGTH; j++ )

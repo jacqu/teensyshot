@@ -6,10 +6,6 @@
 #ifndef __DSHOT_H
 #define __DSHOT_H
 
-// Includes
-#include <Arduino.h>
-#include "DMAChannel.h"
-
 // Defines
 #define DSHOT_MAX_OUTPUTS         6             // Maximum number of DSHOT outputs on teensy 3.5
 #define DSHOT_NB_DMA_CHAN         6             // Number of accessible DMA channels

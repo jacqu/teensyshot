@@ -7,6 +7,9 @@
  *  Date:     May 2019
  */
 
+// Includes
+#include <Arduino.h>
+#include <math.h>
 #include "AWPID.h"
 
 // Global variables
@@ -48,12 +51,12 @@ void AWPID_init(    uint8_t n,
                      )  {
 
   int      i;
-  
+
   if ( n <= AWPID_MAX_NB )
     AWPID_n = n;
   else
     AWPID_n = AWPID_MAX_NB;
-    
+
   for ( i = 0; i < AWPID_n; i++ )  {
 
     // Definition of the PID tuning parameters

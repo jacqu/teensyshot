@@ -8,10 +8,6 @@
 #ifndef __ESCCMD_H
 #define __ESCCMD_H
 
-// Includes
-#include <Arduino.h>
-#include "DSHOT.h"
-
 // Defines
 #define ESCCMD_MAX_ESC          DSHOT_MAX_OUTPUTS // Max number of ESCs
 #define ESCCMD_NB_UART          6                 // Number of UARTS available
@@ -87,7 +83,7 @@ typedef enum {
 // Function prototypes
 void    ESCCMD_init( uint8_t );
 int     ESCCMD_arm_all( void );
-int     ESCCMD_beep( uint8_t, uint16_t ); 
+int     ESCCMD_beep( uint8_t, uint16_t );
 int     ESCCMD_3D_on( void );
 int     ESCCMD_3D_off( void );
 int     ESCCMD_start_timer( void );
