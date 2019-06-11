@@ -47,12 +47,12 @@ void ESCCMD_init( uint8_t n )  {
 
   if ( ESCCMD_init_flag )
     return;
-  
+
   if ( n <= ESCCMD_MAX_ESC )
     ESCCMD_n = n;
   else
     ESCCMD_n = ESCCMD_MAX_ESC;
-    
+
   // Initialize data arrays to zero
   for ( i = 0; i < ESCCMD_n; i++ ) {
     ESCCMD_state[i]       = 0;
@@ -128,26 +128,26 @@ int ESCCMD_arm_all( void )  {
 //
 int ESCCMD_beep( uint8_t n, uint16_t tone )  {
   static int i;
-  
+
   // Check if motor is within range
   if ( n >= ESCCMD_n )
     return ESCCMD_ERROR_INIT;
-      
+
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-    
+
   // Check if tone value is within valid range
   if ( ( tone < DSHOT_CMD_BEACON1 ) || ( tone > DSHOT_CMD_BEACON5 ) )
     return ESCCMD_ERROR_PARAM;
-  
+
   // Define beep command only for motor n
   for ( i = 0; i < ESCCMD_n; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
-    ESCCMD_tlm[i] = 0;
+    ESCCMD_tlm[i] = 1;
   }
   ESCCMD_cmd[n] = tone;
-  
+
   // Send command a number of times corresponding to the desired duration
   for ( i = 0; i < ( ESCCMD_BEEP_DURATION * 1000 / ESCCMD_CMD_DELAY ); i++ )  {
 
@@ -158,7 +158,7 @@ int ESCCMD_beep( uint8_t n, uint16_t tone )  {
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY );
   }
-  
+
   return 0;
 }
 
@@ -489,14 +489,14 @@ int ESCCMD_tic( void )  {
 
   // Defaults to no error
   ret = 0;
-  
+
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_n; i++ )  {
-  
+
     // Check number of telemetry packet pendng
     if ( ESCCMD_tlm_pend[i] > ESCCMD_TLM_MAX_PEND )
       ret = ESCCMD_ERROR_TLM_PEND;
-    
+
     // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
       // Update pending packet counter
