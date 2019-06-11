@@ -87,6 +87,7 @@ typedef enum {
 // Function prototypes
 void    ESCCMD_init( uint8_t );
 int     ESCCMD_arm_all( void );
+int     ESCCMD_beep( uint8_t, uint16_t ); 
 int     ESCCMD_3D_on( void );
 int     ESCCMD_3D_off( void );
 int     ESCCMD_start_timer( void );
