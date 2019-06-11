@@ -176,10 +176,6 @@ int ESCCMD_3D_on( void )  {
     return ESCCMD_ERROR_INIT;
 
   for ( i = 0; i < ESCCMD_n; i++ )  {
-    // Check if all the ESCs are armed
-    if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
-      return ESCCMD_ERROR_SEQ;
-
     // Check if ESCs are stopped
     if ( ESCCMD_state[i] & ESCCMD_STATE_START )
       return ESCCMD_ERROR_SEQ;
@@ -246,14 +242,6 @@ int ESCCMD_3D_off( void )  {
     return ESCCMD_ERROR_INIT;
 
   for ( i = 0; i < ESCCMD_n; i++ )  {
-    // Check if all the ESCs are armed
-    if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
-      return ESCCMD_ERROR_SEQ;
-
-    // Check if ESCs are already in default mode
-    if ( !( ESCCMD_state[i] & ESCCMD_STATE_3D ) )
-      return ESCCMD_ERROR_SEQ;
-
     // Check if ESCs are stopped
     if ( ESCCMD_state[i] & ESCCMD_STATE_START )
       return ESCCMD_ERROR_SEQ;
