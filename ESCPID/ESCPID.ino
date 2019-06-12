@@ -97,11 +97,18 @@ void setup() {
     ESCPID_Ki[i] =  ESCPID_PID_I;
     ESCPID_Kd[i] =  ESCPID_PID_D;
     ESCPID_f[i] =   ESCPID_PID_f;
-    ESCPID_Sat[i] = ESCPID_PID_SAT;
+    ESCPID_Min[i] = ESCPID_PID_MIN;
+    ESCPID_Max[i] = ESCPID_PID_MAX;
   }
 
   // Initialize PID subsystem
-  AWPID_init( ESCPID_NB_ESC, ESCPID_Kp, ESCPID_Ki, ESCPID_Kd, ESCPID_f, ESCPID_Sat );
+  AWPID_init( ESCPID_NB_ESC, 
+              ESCPID_Kp, 
+              ESCPID_Ki, 
+              ESCPID_Kd, 
+              ESCPID_f, 
+              ESCPID_Min, 
+              ESCPID_Max );
 
   // Initialize the CMD subsystem
   ESCCMD_init( ESCPID_NB_ESC );
@@ -156,14 +163,23 @@ void loop() {
     // Process timer event
 
     // Read all measurements and compute current control signal
-    for ( i = 0; i < ESCPID_NB_ESC; i++ )
+    for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
+    
+      // Compute control signal only if telemetry is valid
+      // In case of invalid telemetry, last control signal is sent
       if ( !( ESCCMD_read_RPM( i, &ESCPID_Measurement[i] ) ) )
-        AWPID_control( ESCPID_Reference, ESCPID_Measurement, ESCPID_Control );
-
-    // Send control signal
-    for ( i = 0; i < ESCPID_NB_ESC; i++ )
+        AWPID_control( i, ESCPID_Reference, ESCPID_Measurement, ESCPID_Control );
+    
+      // Define the sign of the throttle according to the reference sign
+      if ( ESCPID_Reference[i] >= 0 )
+        ESCPID_Control[i] = fabs( ESCPID_Control[i] );
+      else
+        ESCPID_Control[i] = -fabs( ESCPID_Control[i] );
+      
+      // Send control signal
       if ( ( ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] ) ) )
         Serial.println( ESCPID_error( "ESCCMD_throttle", ret ) );
+    }
   }
   else if ( ret ) {
     // Process error

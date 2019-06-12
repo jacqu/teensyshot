@@ -505,7 +505,6 @@ int ESCCMD_tic( void )  {
           bufferTlm[j] = ESCCMD_serial[i].read( );
 
         // If a packet has arrived, process it
-
         ESCCMD_tlm_deg[i]     =   bufferTlm[0];
         ESCCMD_tlm_volt[i]    = ( bufferTlm[1] << 8 ) | bufferTlm[2];
         ESCCMD_tlm_amp[i]     = ( bufferTlm[3] << 8 ) | bufferTlm[4];
