@@ -401,6 +401,8 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
       return ESCCMD_ERROR_PARAM;
 
     // 3D mode
+    // 48 - 1047    : positive direction (48 slowest)
+    // 1048 - 2047  : negative direction (1048 slowest)
     if ( throttle >= 0 )
       ESCCMD_cmd[i] = DSHOT_CMD_MAX + 1 + throttle;
     else
@@ -451,10 +453,13 @@ int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
   if ( ESCCMD_tlm_valid[i] )  {
     // Check current mode
     if ( local_state & ESCCMD_STATE_3D )  {
-      if ( ESCCMD_cmd[i] >= DSHOT_CMD_MAX + 1 + ESCCMD_MAX_3D_THROTTLE )
-        *rpm = (double)( -ESCCMD_tlm_rpm[i] );  // 3D mode reverse direction
+      // 3D mode
+      // 48 - 1047    : positive direction (48 slowest)
+      // 1048 - 2047  : negative direction (1048 slowest)
+      if ( ESCCMD_cmd[i] > DSHOT_CMD_MAX + 1 + ESCCMD_MAX_3D_THROTTLE )
+        *rpm = (double)( -ESCCMD_tlm_rpm[i] );  // 3D mode negative direction
       else
-        *rpm = (double)( ESCCMD_tlm_rpm[i] );   // 3D mode normal direction
+        *rpm = (double)( ESCCMD_tlm_rpm[i] );   // 3D mode positive direction
     }
     else {
       // Default mode
