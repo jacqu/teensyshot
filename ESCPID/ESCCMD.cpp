@@ -451,18 +451,17 @@ int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
   if ( ESCCMD_tlm_valid[i] )  {
     // Check current mode
     if ( local_state & ESCCMD_STATE_3D )  {
-      // 3D mode
-      if ( ESCCMD_cmd[i] < 0 )
-        *rpm = (double)( -ESCCMD_tlm_rpm[i] );
+      if ( ESCCMD_cmd[i] >= DSHOT_CMD_MAX + 1 + ESCCMD_MAX_3D_THROTTLE )
+        *rpm = (double)( -ESCCMD_tlm_rpm[i] );  // 3D mode reverse direction
       else
-        *rpm = (double)( ESCCMD_tlm_rpm[i] );
+        *rpm = (double)( ESCCMD_tlm_rpm[i] );   // 3D mode normal direction
     }
     else {
       // Default mode
       *rpm = (double)( ESCCMD_tlm_rpm[i] );
     }
   }
-  else {
+  else { 
     return ESCCMD_ERROR_TLM_INVAL;
   }
 
