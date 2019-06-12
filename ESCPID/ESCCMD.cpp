@@ -125,15 +125,15 @@ int ESCCMD_arm_all( void )  {
 }
 
 //
-//  Make motor n beep
+//  Make motor number k beep
 //
 //  Return values: see defines
 //
-int ESCCMD_beep( uint8_t n, uint16_t tone )  {
+int ESCCMD_beep( uint8_t k, uint16_t tone )  {
   static int i;
 
   // Check if motor is within range
-  if ( n >= ESCCMD_n )
+  if ( k >= ESCCMD_n )
     return ESCCMD_ERROR_INIT;
 
   // Check if everything is initialized
@@ -149,7 +149,7 @@ int ESCCMD_beep( uint8_t n, uint16_t tone )  {
     ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
     ESCCMD_tlm[i] = 1;
   }
-  ESCCMD_cmd[n] = tone;
+  ESCCMD_cmd[k] = tone;
 
   // Send command a number of times corresponding to the desired duration
   for ( i = 0; i < ( ESCCMD_BEEP_DURATION * 1000 / ESCCMD_CMD_DELAY ); i++ )  {
@@ -531,6 +531,17 @@ int ESCCMD_tic( void )  {
 
           // Flush UART incoming buffer
           ESCCMD_serial[i].clear( );
+        }
+        else {
+          // Make some verifications on the telemetry
+          
+          // Check for overtheating of the ESC
+          if ( ESCCMD_tlm_deg[i] >= ESCCMD_TLM_MAX_TEMP )
+            ret = ESCCMD_ERROR_TLM_TEMP;
+            
+          // Check for excessive CRC errors
+          if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR )
+            ret = ESCCMD_ERROR_TLM_CRCMAX;
         }
       }
     }

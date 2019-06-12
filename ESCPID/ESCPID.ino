@@ -68,6 +68,18 @@ char *ESCPID_error( const char *prefix, int ret ) {
                 prefix,
                 "invalid telemetry error" );
       break;
+    case ESCCMD_ERROR_TLM_TEMP:
+      snprintf( ESCPID_error_msg,
+                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
+                prefix,
+                "ESC overheating error" );
+      break;
+    case ESCCMD_ERROR_TLM_CRCMAX:
+      snprintf( ESCPID_error_msg,
+                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
+                prefix,
+                "max allowed CRC error" );
+      break;
 
     default:
       snprintf( ESCPID_error_msg,

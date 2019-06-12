@@ -33,6 +33,8 @@
 #define ESCCMD_TLM_LENGTH       10                // Number of bytes in the telemetry packet
 #define ESCCMD_TLM_MAX_PEND     1                 // Maximum number of telemetry packet pending
 #define ESCCMD_TLM_NB_POLES     14                // Number of motor poles
+#define ESCCMD_TLM_MAX_TEMP     100               // Maximum ESC temperature (°C)
+#define ESCCMD_TLM_MAX_CRC_ERR  4                 // Maximum CRC errors allowed
 
 #define ESCCMD_MAX_THROTTLE     1999              // Max default throttle value
 #define ESCCMD_MAX_3D_THROTTLE  999               // Max 3D throttle value
@@ -46,6 +48,8 @@
 #define ESCCMD_ERROR_TLM_CRC    -5                // CRC error in telemetry packet
 #define ESCCMD_ERROR_TLM_INVAL  -6                // Invalid telemetry error
 #define ESCCMD_ERROR_TLM_PEND   -7                // Maximum number of pending telemetry packet reached
+#define ESCCMD_ERROR_TLM_TEMP   -8                // Maximum ESC temperature reached
+#define ESCCMD_ERROR_TLM_CRCMAX -9                // Maximum allowed CRC errors reached
 
 #define ESCCMD_TIC_OCCURED      1                 // A new timer tic has occured
 
