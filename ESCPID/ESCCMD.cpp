@@ -465,6 +465,9 @@ int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
       // Default mode
       *rpm = (double)( ESCCMD_tlm_rpm[i] );
     }
+    
+    // Conversion in rpm
+    *rpm *= 100.0 / ( ESCCMD_TLM_NB_POLES / 2 );
   }
   else { 
     return ESCCMD_ERROR_TLM_INVAL;

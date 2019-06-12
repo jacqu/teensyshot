@@ -32,6 +32,7 @@
 #define ESCCMD_TLM_UART_SPEED   115200            // Baudrate of the telemetry serial transmission
 #define ESCCMD_TLM_LENGTH       10                // Number of bytes in the telemetry packet
 #define ESCCMD_TLM_MAX_PEND     1                 // Maximum number of telemetry packet pending
+#define ESCCMD_TLM_NB_POLES     14                // Number of motor poles
 
 #define ESCCMD_MAX_THROTTLE     1999              // Max default throttle value
 #define ESCCMD_MAX_3D_THROTTLE  999               // Max 3D throttle value
