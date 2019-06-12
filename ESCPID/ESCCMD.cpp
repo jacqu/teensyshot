@@ -21,6 +21,7 @@ volatile uint16_t   ESCCMD_state[ESCCMD_MAX_ESC];           // Current state of 
 uint16_t            ESCCMD_CRC_errors[ESCCMD_MAX_ESC];      // Overall number of CRC error since start
 int16_t             ESCCMD_last_error[ESCCMD_MAX_ESC];      // Last error code
 uint16_t            ESCCMD_cmd[ESCCMD_MAX_ESC];             // Last command
+uint16_t            ESCCMD_throttle_wd[ESCCMD_MAX_ESC];     // Throttle watchdog counter
 uint8_t             ESCCMD_tlm_deg[ESCCMD_MAX_ESC];         // ESC temperature (°C)
 uint16_t            ESCCMD_tlm_volt[ESCCMD_MAX_ESC];        // Voltage of the ESC power supply (0.01V)
 uint16_t            ESCCMD_tlm_amp[ESCCMD_MAX_ESC];         // ESC current (0.01A)
@@ -62,6 +63,7 @@ void ESCCMD_init( uint8_t n )  {
     ESCCMD_CRC_errors[i]  = 0;
     ESCCMD_last_error[i]  = 0;
     ESCCMD_cmd[i]         = 0;
+    ESCCMD_throttle_wd[i] = 0;
     ESCCMD_tlm_deg[i]     = 0;
     ESCCMD_tlm_volt[i]    = 0;
     ESCCMD_tlm_amp[i]     = 0;
@@ -106,8 +108,8 @@ int ESCCMD_arm_all( void )  {
     ESCCMD_tlm[i] = 0;
   }
 
-  // Send command ESCCMD_CMD_REPETITION times
-  for ( i = 0; i < ESCCMD_CMD_ARMING_REPETITION; i++ )  {
+  // Send command ESCCMD_CMD_ARMING_REP times
+  for ( i = 0; i < ESCCMD_CMD_ARMING_REP; i++ )  {
 
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
@@ -152,7 +154,7 @@ int ESCCMD_beep( uint8_t k, uint16_t tone )  {
   ESCCMD_cmd[k] = tone;
 
   // Send command a number of times corresponding to the desired duration
-  for ( i = 0; i < ( ESCCMD_BEEP_DURATION * 1000 / ESCCMD_CMD_DELAY ); i++ )  {
+  for ( i = 0; i < ( ( ESCCMD_BEEP_DURATION * 1000 ) / ESCCMD_CMD_DELAY ); i++ )  {
 
     // Send DSHOT signal to all ESCs
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
@@ -164,7 +166,6 @@ int ESCCMD_beep( uint8_t k, uint16_t tone )  {
 
   return 0;
 }
-
 
 //
 //  Activate 3D mode
@@ -327,7 +328,7 @@ int ESCCMD_start_timer( void )  {
 
   // Initialize ESC structure
   for ( i = 0; i < ESCCMD_n; i++ )  {
-    ESCCMD_cmd[i] = 0;
+    ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
     ESCCMD_tlm[i] = 1;
     ESCCMD_tlm_pend[i] = 0;
   }
@@ -364,7 +365,7 @@ int ESCCMD_stop_timer( void )  {
 
   // Update ESC state
   for ( i = 0; i < ESCCMD_n; i++ )  {
-    ESCCMD_cmd[i] = 0;
+    ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
     ESCCMD_tlm[i] = 0;
     ESCCMD_state[i] &= ~( ESCCMD_STATE_ARMED | ESCCMD_STATE_START );
   }
@@ -394,7 +395,6 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
     return ESCCMD_ERROR_SEQ;
 
   // Define throttle depending on the mode
-
   if ( local_state & ESCCMD_STATE_3D )  {
     // Check limits
     if ( ( throttle < ESCCMD_MIN_3D_THROTTLE ) || ( throttle > ESCCMD_MAX_3D_THROTTLE ))
@@ -416,15 +416,18 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
 
     // Default mode
     ESCCMD_cmd[i] = DSHOT_CMD_MAX + 1 + throttle;
-
   }
-
+  
   // Switch start mode on only if needed
-  if ( local_state & ESCCMD_STATE_START ) {
+  if ( !( local_state & ESCCMD_STATE_START ) ) {
     noInterrupts();
     ESCCMD_state[i] |= ESCCMD_STATE_START;
     interrupts();
+    ESCCMD_tlm[i] = 1;
   }
+  
+  // Reset the throttle watchdog
+  ESCCMD_throttle_wd[i] = 0;
 
   return 0;
 }
@@ -571,7 +574,22 @@ int ESCCMD_tic( void )  {
     for ( i = 0; i < ESCCMD_n; i++ )
       if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
         return ESCCMD_ERROR_SEQ;
-
+        
+    // Throttle watchdog
+    for ( i = 0; i < ESCCMD_n; i++ )  {
+      if ( ESCCMD_throttle_wd[i] > ESCCMD_THWD_LEVEL )  {
+        // Watchdog triggered on ESC number i
+        ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
+        ESCCMD_tlm[i] = 0;
+        noInterrupts();
+        ESCCMD_state[i] &= ~( ESCCMD_STATE_START );
+        interrupts();
+      }
+      else {
+        ESCCMD_throttle_wd[i]++;
+      }
+    }
+    
     // Send current command
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
       return ESCCMD_ERROR_DSHOT;

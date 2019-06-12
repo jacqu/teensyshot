@@ -26,6 +26,18 @@ double  ESCPID_Kd[ESCPID_NB_ESC];
 double  ESCPID_f[ESCPID_NB_ESC];
 double  ESCPID_Sat[ESCPID_NB_ESC];
 
+ESCPIDcomm_struct_t ESCPID_comm = {
+                                  {},
+                                  {},
+                                  {},
+                                  {},
+                                  {},
+                                  {}
+                                  };
+Hostcomm_struct_t   Host_comm =   { 
+                                  {} 
+                                  };
+
 //
 //  Error processing
 //
@@ -108,7 +120,7 @@ void setup() {
     ESCPID_Kp[i] =  ESCPID_PID_P;
     ESCPID_Ki[i] =  ESCPID_PID_I;
     ESCPID_Kd[i] =  ESCPID_PID_D;
-    ESCPID_f[i] =   ESCPID_PID_f;
+    ESCPID_f[i] =   ESCPID_PID_F;
     ESCPID_Min[i] = ESCPID_PID_MIN;
     ESCPID_Max[i] = ESCPID_PID_MAX;
   }

@@ -21,14 +21,16 @@
 #define ESCCMD_STATE_ERROR      128               // Mask for the error flag
 
 #define ESCCMD_CMD_REPETITION   10                // Number of time commands have to be repeated to be acknowledged by ESC
-#define ESCCMD_CMD_ARMING_REPETITION    25
+#define ESCCMD_CMD_ARMING_REP   25                // Number of command repetition to arm
 #define ESCCMD_CMD_DELAY        50                // Delay between two consecutive DSHOT transmissions (us)
-#define ESCCMD_CMD_SAVE_DELAY   250000             // Minimum time to wait after a save command (us)
+#define ESCCMD_CMD_SAVE_DELAY   250000            // Minimum time to wait after a save command (us)
 
 #define ESCCMD_TIMER_PERIOD     2000              // Periodic loop period (us)
 #define ESCCMD_ESC_WATCHDOG     250000            // ESC arming watchdog timer (us)
 #define ESCCMD_TIMER_MAX_MISS   ( ESCCMD_ESC_WATCHDOG / ESCCMD_TIMER_PERIOD )
                                                   // Maximum missed tics before watchdog is triggered
+#define ESCCMD_THWD_LEVEL       250               // Maximum number of periods without throttle refresh
+
 #define ESCCMD_TLM_UART_SPEED   115200            // Baudrate of the telemetry serial transmission
 #define ESCCMD_TLM_LENGTH       10                // Number of bytes in the telemetry packet
 #define ESCCMD_TLM_MAX_PEND     1                 // Maximum number of telemetry packet pending
