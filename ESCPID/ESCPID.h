@@ -21,6 +21,7 @@
 #define ESCPID_PID_MAX            999.0             // PID max control input value
 
 // Teensy->host communication data structure
+// Data structure is robust to 4-bytes memory alignment
 typedef struct {
   int           ESCPID_err[ESCPID_MAX_ESC];            // Last error number
   float         ESCCMD_tlm_deg[ESCPID_MAX_ESC];        // ESC temperature (°C)

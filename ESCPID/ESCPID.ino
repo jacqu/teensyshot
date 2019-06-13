@@ -14,6 +14,9 @@
 #include "AWPID.h"
 #include "ESCPID.h"
 
+// Flags
+//#define ESCPID_DEBUG_MSG                        // Send debug messages to serial
+
 // Globals
 double  ESCPID_Reference[ESCPID_NB_ESC] = {};
 double  ESCPID_Measurement[ESCPID_NB_ESC] = {};
@@ -141,37 +144,53 @@ void setup() {
   ret = ESCCMD_arm_all( );
 
   // Process error
+  #ifdef ESCPID_DEBUG_MSG
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_arm_all", ret ) );
-
+  #endif
+  
   // Switch 3D mode on
   ret = ESCCMD_3D_on( );
 
   // Process error
+  #ifdef ESCPID_DEBUG_MSG
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_3D_on", ret ) );
+  #endif
 
   // Arming ESCs
   ret = ESCCMD_arm_all( );
 
   // Process error
+  #ifdef ESCPID_DEBUG_MSG
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_arm_all", ret ) );
+  #endif
 
   // Start periodic loop
   ret = ESCCMD_start_timer( );
 
   // Process error
+  #ifdef ESCPID_DEBUG_MSG
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_start_timer", ret ) );
-
-  // Start all motors
-  for ( i = 0; i < ESCPID_NB_ESC; i++ )
-    if ( ( ret = ESCCMD_throttle( i, 0 ) ) )
+  #endif
+  
+  // Stop all motors
+  for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
+    ret = ESCCMD_throttle( i, DSHOT_CMD_MOTOR_STOP );
+    
+    // Process error
+    #ifdef ESCPID_DEBUG_MSG
+    if ( ret )
       Serial.println( ESCPID_error( "ESCCMD_throttle", ret ) );
+    #endif
+  }
 
   // Init finished
+  #ifdef ESCPID_DEBUG_MSG
   Serial.println( "ESCPID setup complete" );
+  #endif
 }
 
 //
@@ -201,12 +220,19 @@ void loop() {
         ESCPID_Control[i] = -fabs( ESCPID_Control[i] );
       
       // Send control signal
-      if ( ( ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] ) ) )
+      ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
+      
+      //Process error
+      #ifdef ESCPID_DEBUG_MSG
+      if ( ret )
         Serial.println( ESCPID_error( "ESCCMD_throttle", ret ) );
+      #endif
     }
   }
+  #ifdef ESCPID_DEBUG_MSG
   else if ( ret ) {
     // Process error
     Serial.println( ESCPID_error( "ESCCMD_tic", ret ) );
   }
+  #endif
 }
