@@ -181,7 +181,10 @@ char *ESCPID_error( const char *prefix, int ret ) {
 //  Arduino setup function
 //
 void setup() {
-  int i, ret;
+  int i;
+  #ifdef ESCPID_DEBUG_MSG
+  int ret;
+  #endif
 
   // Initialize USB serial link
   Serial.begin( ESCPID_USB_UART_SPEED );
@@ -212,8 +215,13 @@ void setup() {
   ESCCMD_init( ESCPID_NB_ESC );
 
   // Arming ESCs
+  
+  #ifdef ESCPID_DEBUG_MSG
   ret = ESCCMD_arm_all( );
-
+  #else
+  ESCCMD_arm_all( );
+  #endif
+  
   // Process error
   #ifdef ESCPID_DEBUG_MSG
   if ( ret )
