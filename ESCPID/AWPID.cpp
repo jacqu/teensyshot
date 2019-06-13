@@ -89,8 +89,8 @@ void AWPID_init(    uint8_t n,
 // Computation of the ith control signal
 //
 void AWPID_control( uint8_t i,
-                    double *Reference,
-                    double *Measurement,
+                    double Reference,
+                    double Measurement,
                     double *Control )  {
 
   if ( i >= AWPID_n )
@@ -98,7 +98,7 @@ void AWPID_control( uint8_t i,
 
   // Computation of the error
   AWPID_e1[i] = AWPID_e0[i];
-  AWPID_e0[i] = Reference[i] - Measurement[i];
+  AWPID_e0[i] = Reference - Measurement;
 
   // Computation of the derivative term
   AWPID_ud1[i] =  AWPID_ud0[i];
@@ -134,14 +134,14 @@ void AWPID_control( uint8_t i,
     }
 
   // Control signal computation
-  Control[i] =  AWPID_Kp[i] * AWPID_e0[i] + AWPID_ud0[i] + AWPID_ui0[i];
+  *Control = AWPID_Kp[i] * AWPID_e0[i] + AWPID_ud0[i] + AWPID_ui0[i];
 
   // Saturation
-  if ( Control[i] > AWPID_Max[i] )
-    Control[i] = AWPID_Max[i];
+  if ( *Control > AWPID_Max[i] )
+    *Control = AWPID_Max[i];
 
-  if ( Control[i] < AWPID_Min[i] )
-    Control[i] = AWPID_Min[i];
+  if ( *Control < AWPID_Min[i] )
+    *Control = AWPID_Min[i];
 
   return;
   }

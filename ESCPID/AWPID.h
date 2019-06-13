@@ -11,7 +11,7 @@
 
 // Function prototypes
 void AWPID_init( uint8_t, double*, double*, double*, double*, double*, double* );
-void AWPID_control( uint8_t, double*, double*, double* );
-void AWPID_tune( uint8_t, double*, double*, double*, double*, double*, double* );
+void AWPID_control( uint8_t, double, double, double* );
+void AWPID_tune( uint8_t, double, double, double, double, double, double );
 
 #endif

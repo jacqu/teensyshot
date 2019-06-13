@@ -18,16 +18,18 @@
 //#define ESCPID_DEBUG_MSG                        // Send debug messages to serial
 
 // Globals
-double  ESCPID_Reference[ESCPID_NB_ESC] = {};
-double  ESCPID_Measurement[ESCPID_NB_ESC] = {};
-double  ESCPID_Control[ESCPID_NB_ESC] = {};
-char    ESCPID_error_msg[ESCPID_ERROR_MSG_LENGTH];
+double    ESCPID_Reference[ESCPID_NB_ESC] = {};
+double    ESCPID_Measurement[ESCPID_NB_ESC] = {};
+double    ESCPID_Control[ESCPID_NB_ESC] = {};
+char      ESCPID_error_msg[ESCPID_ERROR_MSG_LENGTH];
+uint16_t  ESCPID_comm_wd = 0;
 
 double  ESCPID_Kp[ESCPID_NB_ESC];
 double  ESCPID_Ki[ESCPID_NB_ESC];
 double  ESCPID_Kd[ESCPID_NB_ESC];
 double  ESCPID_f[ESCPID_NB_ESC];
-double  ESCPID_Sat[ESCPID_NB_ESC];
+double  ESCPID_Min[ESCPID_NB_ESC];
+double  ESCPID_Max[ESCPID_NB_ESC];
 
 ESCPIDcomm_struct_t ESCPID_comm = {
                                   ESCPID_COMM_MAGIC,
@@ -46,6 +48,69 @@ Hostcomm_struct_t   Host_comm =   {
                                   {},
                                   {}
                                   };
+
+//
+// Manage communication with the host
+//
+int ESCPID_comm( void ) {
+  static int          i;
+  static uint8_t      *pt;
+  static int          ret;
+  
+  ret = 0;
+  
+  // Pointer points to the outcoming data structure
+  pt = (uint8_t*)(&ESCPID_comm);
+  
+  // Send data structure to host
+  Serial.write( pt, sizeof( ESCPID_comm ) );
+  
+  // Pointer points to the incoming data structure
+  pt = (uint8_t*)(&Host_comm);
+  
+  // Check if an incoming packet is available
+  if ( Serial.available( ) >= sizeof( Host_comm ) ) {
+  
+    // Copy incoming packet bytes into data structure
+    for ( i = 0; i < sizeof( Host_comm ); i++ )
+      pt[i] = Serial.read( );
+  
+    // Check the validity of the magic number
+    if ( Host_comm.magic != ESCPID_COMM_MAGIC ) {
+    
+      // Flush input buffer
+      while ( Serial.read( ) != -1 );
+    
+      ret = ESCPID_ERROR_MAGIC;
+    }
+    else {
+      // Reset the communication watchdog
+      ESCPID_comm_wd = 0;
+      
+      // Update the reference
+      for ( i = 0; i < ESCPID_NB_ESC; i++ )
+        ESCPID_Reference[i] = Host_comm.RPM_r[i];
+      
+      // Update PID tuning parameters
+      for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
+        ESCPID_Kp[i] = Host_comm.PID_P[i];
+        ESCPID_Ki[i] = Host_comm.PID_I[i];
+        ESCPID_Kd[i] = Host_comm.PID_D[i];
+        ESCPID_f[i] = Host_comm.PID_f[i];
+        AWPID_tune(     i,
+                        ESCPID_Kp[i],
+                        ESCPID_Ki[i],
+                        ESCPID_Kd[i],
+                        ESCPID_f[i],
+                        ESCPID_Min[i],
+                        ESCPID_Max[i]
+                       );
+      }
+    }
+  }
+
+  return ret;
+}
 
 //
 //  Error processing
@@ -217,7 +282,10 @@ void loop( ) {
       // Compute control signal only if telemetry is valid
       // In case of invalid telemetry, last control signal is sent
       if ( !( ESCCMD_read_RPM( i, &ESCPID_Measurement[i] ) ) )
-        AWPID_control( i, ESCPID_Reference, ESCPID_Measurement, ESCPID_Control );
+        AWPID_control(  i, 
+                        ESCPID_Reference[i], 
+                        ESCPID_Measurement[i], 
+                        &ESCPID_Control[i] );
     
       // Define the sign of the throttle according to the reference sign
       if ( ESCPID_Reference[i] >= 0 )
