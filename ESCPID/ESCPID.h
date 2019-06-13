@@ -20,7 +20,7 @@
 #define ESCPID_PID_MIN            1.0               // PID min control input value
 #define ESCPID_PID_MAX            999.0             // PID max control input value
 
-#define ESCPID_COMM_MAGIC         0x43305745        // Magic number: "teensy45" in leet speech
+#define ESCPID_COMM_MAGIC         0x43305735        // Magic number: "teensy35" in leet speech
 
 #define ESCPID_ERROR_MAGIC        -1                // Magic number error code
 
