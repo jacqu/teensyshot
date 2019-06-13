@@ -20,20 +20,28 @@
 #define ESCPID_PID_MIN            1.0               // PID min control input value
 #define ESCPID_PID_MAX            999.0             // PID max control input value
 
+#define ESCPID_COMM_MAGIC         0x43305745        // Magic number: "teensy45" in leet speech
+
 // Teensy->host communication data structure
 // Data structure is robust to 4-bytes memory alignment
 typedef struct {
-  int           ESCPID_err[ESCPID_MAX_ESC];            // Last error number
-  float         ESCCMD_tlm_deg[ESCPID_MAX_ESC];        // ESC temperature (°C)
-  float         ESCCMD_tlm_volt[ESCPID_MAX_ESC];       // Voltage of the ESC power supply (V)
-  float         ESCCMD_tlm_amp[ESCPID_MAX_ESC];        // ESC current (A)
-  float         ESCCMD_tlm_mah[ESCPID_MAX_ESC];        // ESC consumption (Ah)
-  float         ESCCMD_tlm_rpm[ESCPID_MAX_ESC];        // Motor rpm (rpm)
+  const uint8_t magic;                        // Magic number
+  int           err[ESCPID_MAX_ESC];          // Last error number
+  float         tlm_deg[ESCPID_MAX_ESC];      // ESC temperature (°C)
+  float         tlm_volt[ESCPID_MAX_ESC];     // Voltage of the ESC power supply (V)
+  float         tlm_amp[ESCPID_MAX_ESC];      // ESC current (A)
+  float         tlm_mah[ESCPID_MAX_ESC];      // ESC consumption (Ah)
+  float         tlm_rpm[ESCPID_MAX_ESC];      // Motor rpm (rpm)
 } ESCPIDcomm_struct_t;
 
 // Host->teensy communication data structure
 typedef struct {
-  float         Velocity_ref[ESCPID_MAX_ESC];         // Velocity reference (rpm)
+  const uint8_t magic;                        // Magic number
+  float         RPM_r[ESCPID_MAX_ESC];        // Velocity reference (rpm)
+  float         PID_P[ESCPID_MAX_ESC];        // PID proportional gain
+  float         PID_I[ESCPID_MAX_ESC];        // PID integral gain
+  float         PID_D[ESCPID_MAX_ESC];        // PID derivative gain
+  float         PID_F[ESCPID_MAX_ESC];        // PID filtering pole
 } Hostcomm_struct_t;
 
 #endif

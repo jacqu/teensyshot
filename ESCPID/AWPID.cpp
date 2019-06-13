@@ -26,7 +26,7 @@ double  AWPID_ui0[AWPID_MAX_NB];      // Integral term
 double  AWPID_ui1[AWPID_MAX_NB];      // Last sample integral term
 double  AWPID_ud0[AWPID_MAX_NB];      // Derivative term
 double  AWPID_ud1[AWPID_MAX_NB];      // Last sample derivative term
-uint8_t AWPID_n;                      // Number of initialized PIDs
+uint8_t AWPID_n = 0;                  // Number of initialized PIDs
 
 //
 //  Initialisation of the PID parametrs
@@ -93,7 +93,7 @@ void AWPID_control( uint8_t i,
                     double *Measurement,
                     double *Control )  {
 
-  if ( i >= AWPID_MAX_NB )
+  if ( i >= AWPID_n )
     return;
 
   // Computation of the error
@@ -145,3 +145,28 @@ void AWPID_control( uint8_t i,
 
   return;
   }
+
+//
+// Tuning of the ith PID.
+// Can be called on-the-fly. 
+//
+void AWPID_tune(    uint8_t i,
+                    double  Kp,
+                    double  Ki,
+                    double  Kd,
+                    double  f,
+                    double  Min,
+                    double  Max
+                     )  {
+  if ( i >= AWPID_n )
+    return;
+  
+  // Definition of the PID tuning parameters
+  AWPID_Kp[i] =   Kp;
+  AWPID_Ki[i] =   Ki;
+  AWPID_Kd[i] =   Kd;
+  AWPID_f[i] =    f;
+  AWPID_Min[i] =  Min;
+  AWPID_Max[i] =  Max;
+
+}                  

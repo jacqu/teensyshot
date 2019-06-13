@@ -30,6 +30,7 @@ double  ESCPID_f[ESCPID_NB_ESC];
 double  ESCPID_Sat[ESCPID_NB_ESC];
 
 ESCPIDcomm_struct_t ESCPID_comm = {
+                                  ESCPID_COMM_MAGIC,
                                   {},
                                   {},
                                   {},
@@ -37,8 +38,13 @@ ESCPIDcomm_struct_t ESCPID_comm = {
                                   {},
                                   {}
                                   };
-Hostcomm_struct_t   Host_comm =   { 
-                                  {} 
+Hostcomm_struct_t   Host_comm =   {
+                                  ESCPID_COMM_MAGIC,
+                                  {},
+                                  {},
+                                  {},
+                                  {},
+                                  {}
                                   };
 
 //
@@ -196,7 +202,7 @@ void setup() {
 //
 //  Arduino main loop
 //
-void loop() {
+void loop( ) {
   int i, ret;
 
   // Check for next timer event
@@ -222,7 +228,7 @@ void loop() {
       // Send control signal
       ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
       
-      //Process error
+      // Process error
       #ifdef ESCPID_DEBUG_MSG
       if ( ret )
         Serial.println( ESCPID_error( "ESCCMD_throttle", ret ) );
