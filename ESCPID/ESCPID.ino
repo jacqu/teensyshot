@@ -215,52 +215,53 @@ void setup() {
   ESCCMD_init( ESCPID_NB_ESC );
 
   // Arming ESCs
-  
-  #ifdef ESCPID_DEBUG_MSG
-  ret = ESCCMD_arm_all( );
-  #else
+  #ifndef ESCPID_DEBUG_MSG
   ESCCMD_arm_all( );
-  #endif
-  
+  #else
+  ret = ESCCMD_arm_all( );
   // Process error
-  #ifdef ESCPID_DEBUG_MSG
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_arm_all", ret ) );
   #endif
   
   // Switch 3D mode on
+  #ifndef ESCPID_DEBUG_MSG
+  ESCCMD_3D_on( );
+  #else
   ret = ESCCMD_3D_on( );
-
   // Process error
-  #ifdef ESCPID_DEBUG_MSG
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_3D_on", ret ) );
   #endif
 
   // Arming ESCs
+  #ifndef ESCPID_DEBUG_MSG
+  ESCCMD_arm_all( );
+  #else
   ret = ESCCMD_arm_all( );
-
   // Process error
-  #ifdef ESCPID_DEBUG_MSG
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_arm_all", ret ) );
   #endif
 
   // Start periodic loop
+  #ifndef ESCPID_DEBUG_MSG
+  ESCCMD_start_timer( );
+  #else
   ret = ESCCMD_start_timer( );
-
   // Process error
-  #ifdef ESCPID_DEBUG_MSG
   if ( ret )
     Serial.println( ESCPID_error( "ESCCMD_start_timer", ret ) );
   #endif
   
   // Stop all motors
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
+    #ifndef ESCPID_DEBUG_MSG
+    ESCCMD_throttle( i, DSHOT_CMD_MOTOR_STOP );
+    #else
     ret = ESCCMD_throttle( i, DSHOT_CMD_MOTOR_STOP );
     
     // Process error
-    #ifdef ESCPID_DEBUG_MSG
     if ( ret )
       Serial.println( ESCPID_error( "ESCCMD_throttle", ret ) );
     #endif
