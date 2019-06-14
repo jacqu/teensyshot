@@ -137,40 +137,34 @@ int ESCCMD_arm_all( void )  {
 //
 //  Return values: see defines
 //
-int ESCCMD_beep( uint8_t k, uint16_t tone )  {
-  static int i;
+int ESCCMD_beep( uint8_t i, uint16_t tone )  {
+  static int k;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
 
   // Check if motor is within range
-  if ( k >= ESCCMD_n )  {
-    ESCCMD_last_error[k] = ESCCMD_ERROR_PARAM;
+  if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
-  }
 
   // Check if tone value is within valid range
-  if ( ( tone < DSHOT_CMD_BEACON1 ) || ( tone > DSHOT_CMD_BEACON5 ) ) {
-    ESCCMD_last_error[k] = ESCCMD_ERROR_PARAM;
-    return ESCCMD_ERROR_PARAM;
-  }
+  if ( ( tone < DSHOT_CMD_BEACON1 ) || ( tone > DSHOT_CMD_BEACON5 ) )
+    ESCCMD_ERROR( ESCCMD_ERROR_PARAM )
 
   // Define beep command only for motor n
-  for ( i = 0; i < ESCCMD_n; i++ )  {
-    ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
-    ESCCMD_tlm[i] = 1;
+  for ( k = 0; k < ESCCMD_n; k++ )  {
+    ESCCMD_cmd[k] = DSHOT_CMD_MOTOR_STOP;
+    ESCCMD_tlm[k] = 1;
   }
-  ESCCMD_cmd[k] = tone;
+  ESCCMD_cmd[i] = tone;
 
   // Send command a number of times corresponding to the desired duration
-  for ( i = 0; i < ( ( ESCCMD_BEEP_DURATION * 1000 ) / ESCCMD_CMD_DELAY ); i++ )  {
+  for ( k = 0; k < ( ( ESCCMD_BEEP_DURATION * 1000 ) / ESCCMD_CMD_DELAY ); k++ )  {
 
     // Send DSHOT signal to all ESCs
-    if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) ) {
-      ESCCMD_last_error[k] = ESCCMD_ERROR_DSHOT;
-      return ESCCMD_ERROR_DSHOT;
-    }
+    if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
+      ESCCMD_ERROR( ESCCMD_ERROR_DSHOT )
 
     // Wait some time
     delayMicroseconds( ESCCMD_CMD_DELAY );
@@ -408,6 +402,10 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
+  
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
 
   // Define a local copy of the state
   noInterrupts();
@@ -457,15 +455,94 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
 }
 
 //
-//  Read temperature of motor number i
-//  Unit is degree Celsius
+//  Stop motor number i
 //
-int ESCCMD_read_deg( uint8_t i, double *deg )  {
+int ESCCMD_stop( uint8_t i ) {
   static uint8_t local_state;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
+  
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
+
+  // Define a local copy of the state
+  noInterrupts();
+  local_state = ESCCMD_state[i];
+  interrupts();
+
+  // Check if ESC is armed
+  if ( !( local_state & ESCCMD_STATE_ARMED ) )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
+
+  // Set command to stop
+  ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
+
+  // Switch start mode off only if needed
+  if ( local_state & ESCCMD_STATE_START  ) {
+    noInterrupts();
+    ESCCMD_state[i] &= ~ESCCMD_STATE_START;
+    interrupts();
+    ESCCMD_tlm[i] = 0;
+  }
+
+  return 0;
+}
+
+//
+//  Return last error code of motor number i
+//
+int ESCCMD_read_err( uint8_t i, int *err )  {
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+    
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
+  
+
+  *err = (int)ESCCMD_last_error[i];
+
+  return 0;
+}
+
+//
+//  Return last command code of motor number i
+//
+int ESCCMD_read_cmd( uint8_t i, int *cmd )  {
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+    
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
+  
+
+  *cmd = (int)ESCCMD_cmd[i];
+
+  return 0;
+}
+
+//
+//  Read temperature of motor number i
+//  Unit is degree Celsius
+//
+int ESCCMD_read_deg( uint8_t i, float *deg )  {
+  static uint8_t local_state;
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+  
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
 
   // Define a local copy of the state
   noInterrupts();
@@ -478,7 +555,7 @@ int ESCCMD_read_deg( uint8_t i, double *deg )  {
 
   // Check if telemetry is valid
   if ( ESCCMD_tlm_valid[i] )  {
-    *deg = (double)ESCCMD_tlm_deg[i];
+    *deg = (float)ESCCMD_tlm_deg[i];
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
@@ -491,12 +568,16 @@ int ESCCMD_read_deg( uint8_t i, double *deg )  {
 //  Read dc power supply voltage of motor number i
 //  Unit is Volt
 //
-int ESCCMD_read_volt( uint8_t i, double *volt )  {
+int ESCCMD_read_volt( uint8_t i, float *volt )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
+  
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
 
   // Define a local copy of the state
   noInterrupts();
@@ -509,7 +590,7 @@ int ESCCMD_read_volt( uint8_t i, double *volt )  {
 
   // Check if telemetry is valid
   if ( ESCCMD_tlm_valid[i] )  {
-    *volt = (double)ESCCMD_tlm_volt[i] * 0.01;
+    *volt = (float)ESCCMD_tlm_volt[i] * 0.01;
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
@@ -522,12 +603,16 @@ int ESCCMD_read_volt( uint8_t i, double *volt )  {
 //  Read current of motor number i
 //  Unit is Ampere
 //
-int ESCCMD_read_amp( uint8_t i, double *amp )  {
+int ESCCMD_read_amp( uint8_t i, float *amp )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
+  
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
 
   // Define a local copy of the state
   noInterrupts();
@@ -540,7 +625,7 @@ int ESCCMD_read_amp( uint8_t i, double *amp )  {
 
   // Check if telemetry is valid
   if ( ESCCMD_tlm_valid[i] )  {
-    *amp = (double)ESCCMD_tlm_amp[i] * 0.01;
+    *amp = (float)ESCCMD_tlm_amp[i] * 0.01;
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
@@ -553,12 +638,16 @@ int ESCCMD_read_amp( uint8_t i, double *amp )  {
 //  Read consumption of motor number i
 //  Unit is milli Ampere.hour 
 //
-int ESCCMD_read_mah( uint8_t i, double *mah )  {
+int ESCCMD_read_mah( uint8_t i, float *mah )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
+  
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
 
   // Define a local copy of the state
   noInterrupts();
@@ -571,7 +660,7 @@ int ESCCMD_read_mah( uint8_t i, double *mah )  {
 
   // Check if telemetry is valid
   if ( ESCCMD_tlm_valid[i] )  {
-    *mah = (double)ESCCMD_tlm_mah[i];
+    *mah = (float)ESCCMD_tlm_mah[i];
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
@@ -585,12 +674,16 @@ int ESCCMD_read_mah( uint8_t i, double *mah )  {
 //  Unit is round per minute
 //  The sign of the measurement depends on the last throttle sign
 //
-int ESCCMD_read_rpm( uint8_t i, double *rpm )  {
+int ESCCMD_read_rpm( uint8_t i, float *rpm )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
+  
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
 
   // Define a local copy of the state
   noInterrupts();
@@ -609,13 +702,13 @@ int ESCCMD_read_rpm( uint8_t i, double *rpm )  {
       // 48 - 1047    : positive direction (48 slowest)
       // 1048 - 2047  : negative direction (1048 slowest)
       if ( ESCCMD_cmd[i] > DSHOT_CMD_MAX + 1 + ESCCMD_MAX_3D_THROTTLE )
-        *rpm = (double)( -ESCCMD_tlm_rpm[i] );  // 3D mode negative direction
+        *rpm = (float)( -ESCCMD_tlm_rpm[i] );  // 3D mode negative direction
       else
-        *rpm = (double)( ESCCMD_tlm_rpm[i] );   // 3D mode positive direction
+        *rpm = (float)( ESCCMD_tlm_rpm[i] );   // 3D mode positive direction
     }
     else {
       // Default mode
-      *rpm = (double)( ESCCMD_tlm_rpm[i] );
+      *rpm = (float)( ESCCMD_tlm_rpm[i] );
     }
 
     // Conversion in rpm
