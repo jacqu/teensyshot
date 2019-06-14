@@ -21,6 +21,7 @@
 #define ESCPID_PID_MAX            999.0             // PID max control input value
 
 #define ESCPID_COMM_MAGIC         0x43305735        // Magic number: "teensy35" in leet speech
+#define ESCPID_COMM_WD_LEVEL      100               // Maximum number of periods without reference refresh
 
 #define ESCPID_ERROR_MAGIC        -1                // Magic number error code
 
@@ -33,7 +34,7 @@ typedef struct {
   float         tlm_deg[ESCPID_MAX_ESC];      // ESC temperature (°C)
   float         tlm_volt[ESCPID_MAX_ESC];     // Voltage of the ESC power supply (V)
   float         tlm_amp[ESCPID_MAX_ESC];      // ESC current (A)
-  float         tlm_mah[ESCPID_MAX_ESC];      // ESC consumption (Ah)
+  float         tlm_mah[ESCPID_MAX_ESC];      // ESC consumption (mAh)
   float         tlm_rpm[ESCPID_MAX_ESC];      // Motor rpm (rpm)
 } ESCPIDcomm_struct_t;
 

@@ -59,6 +59,17 @@ int ESCPID_comm_update( void ) {
   
   ret = 0;
   
+  // Update output data structure values
+  for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
+    ESCCMD_read_err( i, &ESCPID_comm.err[i] );    // Last error number
+    ESCCMD_read_cmd( i, &ESCPID_comm.cmd[i] );    // Current ESC command value
+    ESCCMD_read_deg( i, &ESCPID_comm.deg[i] );    // ESC temperature (°C)
+    ESCCMD_read_volt( i, &ESCPID_comm.volt[i] );  // Voltage of the ESC power supply (V)
+    ESCCMD_read_amp( i, &ESCPID_comm.amp[i] );    // ESC current (A)
+    ESCCMD_read_mah( i, &ESCPID_comm.mah[i] );    // ESC consumption (mAh)
+    ESCCMD_read_rpm( i, &ESCPID_comm.rpm[i] );    // Motor velocity (rpm)
+  }
+  
   // Pointer points to the outcoming data structure
   pt = (uint8_t*)(&ESCPID_comm);
   
@@ -277,13 +288,16 @@ void setup() {
 //  Arduino main loop
 //
 void loop( ) {
-  int i, ret;
+  static int i, ret;
 
   // Check for next timer event
   ret = ESCCMD_tic( );
   if ( ret == ESCCMD_TIC_OCCURED )  {
 
     // Process timer event
+    
+    // Bidirectional serial exchange with host
+    ESCPID_comm_update(  );
 
     // Read all measurements and compute current control signal
     for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
@@ -302,9 +316,12 @@ void loop( ) {
       else
         ESCPID_Control[i] = -fabs( ESCPID_Control[i] );
       
-      // Send control signal
-      ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
-      
+      // Send control signal if reference has been sufficiently refreshed
+      if ( ESCPID_comm_wd <= ESCPID_COMM_WD_LEVEL ) {
+        ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
+        ESCPID_comm_wd++;
+        }
+        
       // Process error
       #ifdef ESCPID_DEBUG_MSG
       if ( ret )
