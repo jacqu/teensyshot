@@ -24,12 +24,12 @@ double    ESCPID_Control[ESCPID_NB_ESC] = {};
 char      ESCPID_error_msg[ESCPID_ERROR_MSG_LENGTH];
 uint16_t  ESCPID_comm_wd = 0;
 
-double  ESCPID_Kp[ESCPID_NB_ESC];
-double  ESCPID_Ki[ESCPID_NB_ESC];
-double  ESCPID_Kd[ESCPID_NB_ESC];
-double  ESCPID_f[ESCPID_NB_ESC];
-double  ESCPID_Min[ESCPID_NB_ESC];
-double  ESCPID_Max[ESCPID_NB_ESC];
+double    ESCPID_Kp[ESCPID_NB_ESC];
+double    ESCPID_Ki[ESCPID_NB_ESC];
+double    ESCPID_Kd[ESCPID_NB_ESC];
+double    ESCPID_f[ESCPID_NB_ESC];
+double    ESCPID_Min[ESCPID_NB_ESC];
+double    ESCPID_Max[ESCPID_NB_ESC];
 
 ESCPIDcomm_struct_t ESCPID_comm = {
                                   ESCPID_COMM_MAGIC,
@@ -52,7 +52,7 @@ Hostcomm_struct_t   Host_comm =   {
 //
 // Manage communication with the host
 //
-int ESCPID_comm( void ) {
+int ESCPID_comm_update( void ) {
   static int          i;
   static uint8_t      *pt;
   static int          ret;
