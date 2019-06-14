@@ -349,11 +349,10 @@ int ESCCMD_start_timer( void )  {
     ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
     ESCCMD_tlm[i] = 1;
     ESCCMD_tlm_pend[i] = 0;
+    ESCCMD_throttle_wd[i] = ESCCMD_THWD_LEVEL;
   }
 
-  noInterrupts();
   ESCCMD_tic_pend = 0;
-  interrupts();
 
   // Initialize timer
   ESCCMD_timer.begin( ESCCMD_ISR_timer, ESCCMD_TIMER_PERIOD );
@@ -826,7 +825,7 @@ int ESCCMD_tic( void )  {
 
     // Throttle watchdog
     for ( i = 0; i < ESCCMD_n; i++ )  {
-      if ( ESCCMD_throttle_wd[i] > ESCCMD_THWD_LEVEL )  {
+      if ( ESCCMD_throttle_wd[i] >= ESCCMD_THWD_LEVEL )  {
         // Watchdog triggered on ESC number i
         ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
         ESCCMD_tlm[i] = 0;

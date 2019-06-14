@@ -54,47 +54,37 @@ Hostcomm_struct_t   Host_comm =   {
 //
 int ESCPID_comm_update( void ) {
   static int          i;
-  static uint8_t      *pt;
+  static uint8_t      *ptin   = (uint8_t*)(&Host_comm),
+                      *ptout  = (uint8_t*)(&ESCPID_comm);
   static int          ret;
+  static int          in_cnt = 0;
   
   ret = 0;
   
-  // Update output data structure values
-  for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
-    ESCCMD_read_err( i, &ESCPID_comm.err[i] );    // Last error number
-    ESCCMD_read_cmd( i, &ESCPID_comm.cmd[i] );    // Current ESC command value
-    ESCCMD_read_deg( i, &ESCPID_comm.deg[i] );    // ESC temperature (°C)
-    ESCCMD_read_volt( i, &ESCPID_comm.volt[i] );  // Voltage of the ESC power supply (V)
-    ESCCMD_read_amp( i, &ESCPID_comm.amp[i] );    // ESC current (A)
-    ESCCMD_read_mah( i, &ESCPID_comm.mah[i] );    // ESC consumption (mAh)
-    ESCCMD_read_rpm( i, &ESCPID_comm.rpm[i] );    // Motor velocity (rpm)
-  }
+  // Read all incoming bytes available until incoming structure is complete
+  while(  ( Serial.available( ) > 0 ) && 
+          ( in_cnt < (int)sizeof( Host_comm ) )
+    ptin[in_cnt++] = Serial.read( );
   
-  // Pointer points to the outcoming data structure
-  pt = (uint8_t*)(&ESCPID_comm);
+  // Check if a complete incoming packet is available
+  if ( in_cnt == (int)sizeof( Host_comm ) ) {
   
-  // Send data structure to host
-  Serial.write( pt, sizeof( ESCPID_comm ) );
-  
-  // Pointer points to the incoming data structure
-  pt = (uint8_t*)(&Host_comm);
-  
-  // Check if an incoming packet is available
-  if ( Serial.available( ) >= (int)sizeof( Host_comm ) ) {
-  
-    // Copy incoming packet bytes into data structure
-    for ( i = 0; i < (int)sizeof( Host_comm ); i++ )
-      pt[i] = Serial.read( );
+    // Clear incoming bytes counter
+    in_cnt = 0;
   
     // Check the validity of the magic number
     if ( Host_comm.magic != ESCPID_COMM_MAGIC ) {
     
       // Flush input buffer
-      while ( Serial.read( ) != -1 );
+      while ( Serial.available( ) )
+        Serial.read( );
     
       ret = ESCPID_ERROR_MAGIC;
     }
     else {
+    
+      // Valid packet received
+      
       // Reset the communication watchdog
       ESCPID_comm_wd = 0;
       
@@ -117,6 +107,20 @@ int ESCPID_comm_update( void ) {
                         ESCPID_Max[i]
                        );
       }
+      
+      // Update output data structure values
+      for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
+        ESCCMD_read_err( i, &ESCPID_comm.err[i] );    // Last error number
+        ESCCMD_read_cmd( i, &ESCPID_comm.cmd[i] );    // Current ESC command value
+        ESCCMD_read_deg( i, &ESCPID_comm.deg[i] );    // ESC temperature (°C)
+        ESCCMD_read_volt( i, &ESCPID_comm.volt[i] );  // Voltage of the ESC power supply (V)
+        ESCCMD_read_amp( i, &ESCPID_comm.amp[i] );    // ESC current (A)
+        ESCCMD_read_mah( i, &ESCPID_comm.mah[i] );    // ESC consumption (mAh)
+        ESCCMD_read_rpm( i, &ESCPID_comm.rpm[i] );    // Motor velocity (rpm)
+      }
+      
+      // Send data structure to host
+      Serial.write( ptout, sizeof( ESCPID_comm ) );
     }
   }
 
@@ -268,9 +272,9 @@ void setup() {
   // Stop all motors
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
     #ifndef ESCPID_DEBUG_MSG
-    ESCCMD_throttle( i, DSHOT_CMD_MOTOR_STOP );
+    ESCCMD_stop( i );
     #else
-    ret = ESCCMD_throttle( i, DSHOT_CMD_MOTOR_STOP );
+    ret = ESCCMD_stop( i );
     
     // Process error
     if ( ret )
@@ -278,6 +282,9 @@ void setup() {
     #endif
   }
 
+  // Reference watchdog is initially triggered
+  ESCPID_comm_wd = ESCPID_COMM_WD_LEVEL;
+  
   // Init finished
   #ifdef ESCPID_DEBUG_MSG
   Serial.println( "ESCPID setup complete" );
@@ -317,7 +324,7 @@ void loop( ) {
         ESCPID_Control[i] = -fabs( ESCPID_Control[i] );
       
       // Send control signal if reference has been sufficiently refreshed
-      if ( ESCPID_comm_wd <= ESCPID_COMM_WD_LEVEL ) {
+      if ( ESCPID_comm_wd < ESCPID_COMM_WD_LEVEL ) {
         ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
         ESCPID_comm_wd++;
         }
