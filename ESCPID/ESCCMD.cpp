@@ -143,7 +143,7 @@ int ESCCMD_beep( uint8_t k, uint16_t tone )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-  
+
   // Check if motor is within range
   if ( k >= ESCCMD_n )  {
     ESCCMD_last_error[k] = ESCCMD_ERROR_PARAM;
@@ -257,7 +257,7 @@ int ESCCMD_3D_on( void )  {
 //  Return values: see defines
 //
 int ESCCMD_3D_off( void )  {
-  static int i;
+  static int i, k;
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -441,7 +441,7 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
     // Default mode
     ESCCMD_cmd[i] = DSHOT_CMD_MAX + 1 + throttle;
   }
-  
+
   // Switch start mode on only if needed
   if ( !( local_state & ESCCMD_STATE_START ) ) {
     noInterrupts();
@@ -449,7 +449,7 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
     interrupts();
     ESCCMD_tlm[i] = 1;
   }
-  
+
   // Reset the throttle watchdog
   ESCCMD_throttle_wd[i] = 0;
 
@@ -492,11 +492,11 @@ int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
       // Default mode
       *rpm = (double)( ESCCMD_tlm_rpm[i] );
     }
-    
+
     // Conversion in rpm
     *rpm *= 100.0 / ( ESCCMD_TLM_NB_POLES / 2 );
   }
-  else { 
+  else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
   }
 
@@ -549,7 +549,7 @@ int ESCCMD_tic( void )  {
         if ( !ESCCMD_tlm_valid[i] ) {
 
           ESCCMD_CRC_errors[i]++;
-          
+
           ret = ESCCMD_ERROR_TLM_CRC;
           ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRC;
 
@@ -565,13 +565,13 @@ int ESCCMD_tic( void )  {
         }
         else {
           // Make some verifications on the telemetry
-          
+
           // Check for overtheating of the ESC
           if ( ESCCMD_tlm_deg[i] >= ESCCMD_TLM_MAX_TEMP ) {
             ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_TEMP;
             ret = ESCCMD_ERROR_TLM_TEMP;
           }
-            
+
           // Check for excessive CRC errors
           if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR ) {
             ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRCMAX;
@@ -606,7 +606,7 @@ int ESCCMD_tic( void )  {
     for ( i = 0; i < ESCCMD_n; i++ )
       if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
         ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
-        
+
     // Throttle watchdog
     for ( i = 0; i < ESCCMD_n; i++ )  {
       if ( ESCCMD_throttle_wd[i] > ESCCMD_THWD_LEVEL )  {
@@ -621,7 +621,7 @@ int ESCCMD_tic( void )  {
         ESCCMD_throttle_wd[i]++;
       }
     }
-    
+
     // Send current command
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) ) {
       for ( i = 0; i < ESCCMD_n; i++ )
