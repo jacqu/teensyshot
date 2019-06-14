@@ -290,7 +290,7 @@ void loop( ) {
     
       // Compute control signal only if telemetry is valid
       // In case of invalid telemetry, last control signal is sent
-      if ( !( ESCCMD_read_RPM( i, &ESCPID_Measurement[i] ) ) )
+      if ( !( ESCCMD_read_rpm( i, &ESCPID_Measurement[i] ) ) )
         AWPID_control(  i, 
                         ESCPID_Reference[i], 
                         ESCPID_Measurement[i], 

@@ -457,10 +457,135 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
 }
 
 //
-//  Read rotational velocity of motor number i
+//  Read temperature of motor number i
+//  Unit is degree Celsius
+//
+int ESCCMD_read_deg( uint8_t i, double *deg )  {
+  static uint8_t local_state;
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+
+  // Define a local copy of the state
+  noInterrupts();
+  local_state = ESCCMD_state[i];
+  interrupts();
+
+  // Check if ESC is armed
+  if ( !( local_state & ESCCMD_STATE_ARMED ) )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
+
+  // Check if telemetry is valid
+  if ( ESCCMD_tlm_valid[i] )  {
+    *deg = (double)ESCCMD_tlm_deg[i];
+  }
+  else {
+    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
+  }
+
+  return 0;
+}
+
+//
+//  Read dc power supply voltage of motor number i
+//  Unit is Volt
+//
+int ESCCMD_read_volt( uint8_t i, double *volt )  {
+  static uint8_t local_state;
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+
+  // Define a local copy of the state
+  noInterrupts();
+  local_state = ESCCMD_state[i];
+  interrupts();
+
+  // Check if ESC is armed
+  if ( !( local_state & ESCCMD_STATE_ARMED ) )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
+
+  // Check if telemetry is valid
+  if ( ESCCMD_tlm_valid[i] )  {
+    *volt = (double)ESCCMD_tlm_volt[i] * 0.01;
+  }
+  else {
+    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
+  }
+
+  return 0;
+}
+
+//
+//  Read current of motor number i
+//  Unit is Ampere
+//
+int ESCCMD_read_amp( uint8_t i, double *amp )  {
+  static uint8_t local_state;
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+
+  // Define a local copy of the state
+  noInterrupts();
+  local_state = ESCCMD_state[i];
+  interrupts();
+
+  // Check if ESC is armed
+  if ( !( local_state & ESCCMD_STATE_ARMED ) )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
+
+  // Check if telemetry is valid
+  if ( ESCCMD_tlm_valid[i] )  {
+    *amp = (double)ESCCMD_tlm_amp[i] * 0.01;
+  }
+  else {
+    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
+  }
+
+  return 0;
+}
+
+//
+//  Read consumption of motor number i
+//  Unit is milli Ampere.hour 
+//
+int ESCCMD_read_mah( uint8_t i, double *mah )  {
+  static uint8_t local_state;
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+
+  // Define a local copy of the state
+  noInterrupts();
+  local_state = ESCCMD_state[i];
+  interrupts();
+
+  // Check if ESC is armed
+  if ( !( local_state & ESCCMD_STATE_ARMED ) )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
+
+  // Check if telemetry is valid
+  if ( ESCCMD_tlm_valid[i] )  {
+    *mah = (double)ESCCMD_tlm_mah[i];
+  }
+  else {
+    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
+  }
+
+  return 0;
+}
+
+//
+//  Read shaft rotational velocity of motor number i
+//  Unit is round per minute
 //  The sign of the measurement depends on the last throttle sign
 //
-int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
+int ESCCMD_read_rpm( uint8_t i, double *rpm )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
@@ -502,7 +627,6 @@ int ESCCMD_read_RPM( uint8_t i, double *rpm )  {
 
   return 0;
 }
-
 
 //
 //  This routine should be called within the main loop
