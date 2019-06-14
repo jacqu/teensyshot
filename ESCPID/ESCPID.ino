@@ -69,10 +69,10 @@ int ESCPID_comm_update( void ) {
   pt = (uint8_t*)(&Host_comm);
   
   // Check if an incoming packet is available
-  if ( Serial.available( ) >= sizeof( Host_comm ) ) {
+  if ( Serial.available( ) >= (int)sizeof( Host_comm ) ) {
   
     // Copy incoming packet bytes into data structure
-    for ( i = 0; i < sizeof( Host_comm ); i++ )
+    for ( i = 0; i < (int)sizeof( Host_comm ); i++ )
       pt[i] = Serial.read( );
   
     // Check the validity of the magic number
