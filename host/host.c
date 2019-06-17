@@ -29,7 +29,7 @@
 // Top, away from RJ45    : platform-3f980000.usb-usb-0:1.3:1.0
 // Top, next RJ45         : platform-3f980000.usb-usb-0:1.1.2:1.0
 #define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
-#define HOST_BAUDRATE       B115200             // Serial baudrate
+#define HOST_BAUDRATE       B4000000            // Serial baudrate
 #define HOST_READ_TIMEOUT   5                   // Tenth of second
 #define HOST_NB_PING        100                 // Nb roundtrip communication
 
@@ -144,7 +144,10 @@ int main( int argc, char *argv[] )  {
     // Get current time
     clock_gettime( CLOCK_MONOTONIC, &start );
     
+    // Reset byte counter and magic number
     res = 0;
+    ESCPID_comm.magic = 0;
+    
     do  {
       ret = read(   Host_fd, &ESCPID_comm, sizeof( ESCPID_comm ) );
       if ( ret > 0 )  {
@@ -166,11 +169,15 @@ int main( int argc, char *argv[] )  {
       
     } while ( res < sizeof( ESCPID_comm ) );
     
-    // Check response
+    // Check response size
     if ( res != sizeof( ESCPID_comm ) )
       fprintf( stderr, "Packet with bad size received.\n" );
+      
+    // Check magic number
     if ( ESCPID_comm.magic !=  ESCPID_COMM_MAGIC )
       fprintf( stderr, "Invalid magic number.\n" );
+    
+    // Print rountrip duration 
     fprintf( stderr, "Delay: %llu us\n", elapsed_us );
   }
   
