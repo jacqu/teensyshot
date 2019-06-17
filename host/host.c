@@ -119,7 +119,6 @@ void Host_release_port( void )  {
 int main( int argc, char *argv[] )  {
     
   int                 i, ret, res = 0;
-  unsigned char       rcv = 0;
   struct timespec     start, cur;
   unsigned long long  elapsed_us;
   
@@ -133,9 +132,9 @@ int main( int argc, char *argv[] )  {
   for ( i = 0; i < HOST_NB_PING; i++ )  {
     
     // Send ping char
-    res = write(   Host_fd, &ESCPID_comm, sizeof( ESCPID_comm ) );
+    res = write(   Host_fd, &Host_comm, sizeof( Host_comm ) );
     if ( res < 0 )  { 
-      perror( "write ESCPID_comm" ); 
+      perror( "write Host_comm" ); 
       exit( -2 ); 
     }
     fsync( Host_fd );
@@ -147,7 +146,7 @@ int main( int argc, char *argv[] )  {
     
     res = 0;
     do  {
-      ret = read(   Host_fd, &Host_comm, sizeof( Host_comm ) );
+      ret = read(   Host_fd, &ESCPID_comm, sizeof( ESCPID_comm ) );
       if ( ret > 0 )  {
         res += ret;
       }
@@ -158,18 +157,19 @@ int main( int argc, char *argv[] )  {
         
       // Compute time elapsed
       clock_gettime( CLOCK_MONOTONIC, &cur );
-      elapsed_us = ( cur.tv_sec * 1e6 + cur.tv_nsec / 1e3 ) - ( start.tv_sec * 1e6 + start.tv_nsec / 1e3 );
+      elapsed_us =  ( cur.tv_sec * 1e6 + cur.tv_nsec / 1e3 ) - 
+                    ( start.tv_sec * 1e6 + start.tv_nsec / 1e3 );
       
       // Timeout
       if ( elapsed_us / 100000 > HOST_READ_TIMEOUT )
         break;
       
-    } while ( res < sizeof( Host_comm ) );
+    } while ( res < sizeof( ESCPID_comm ) );
     
     // Check response
-    if ( res != sizeof( Host_comm ) )
+    if ( res != sizeof( ESCPID_comm ) )
       fprintf( stderr, "Packet with bad size received.\n" );
-    if ( Host_comm.magic !=  ESCPID_COMM_MAGIC )
+    if ( ESCPID_comm.magic !=  ESCPID_COMM_MAGIC )
       fprintf( stderr, "Invalid magic number.\n" );
     fprintf( stderr, "Delay: %llu us\n", elapsed_us );
   }
