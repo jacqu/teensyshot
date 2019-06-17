@@ -63,7 +63,7 @@ int ESCPID_comm_update( void ) {
   
   // Read all incoming bytes available until incoming structure is complete
   while(  ( Serial.available( ) > 0 ) && 
-          ( in_cnt < (int)sizeof( Host_comm ) )
+          ( in_cnt < (int)sizeof( Host_comm ) ) )
     ptin[in_cnt++] = Serial.read( );
   
   // Check if a complete incoming packet is available
@@ -295,7 +295,8 @@ void setup() {
 //  Arduino main loop
 //
 void loop( ) {
-  static int i, ret;
+  static int    i, ret;
+  static float  mes_rpm;
 
   // Check for next timer event
   ret = ESCCMD_tic( );
@@ -311,11 +312,13 @@ void loop( ) {
     
       // Compute control signal only if telemetry is valid
       // In case of invalid telemetry, last control signal is sent
-      if ( !( ESCCMD_read_rpm( i, &ESCPID_Measurement[i] ) ) )
+      if ( !( ESCCMD_read_rpm( i, &mes_rpm ) ) ) {
+        ESCPID_Measurement[i] = (double)mes_rpm;
         AWPID_control(  i, 
                         ESCPID_Reference[i], 
                         ESCPID_Measurement[i], 
                         &ESCPID_Control[i] );
+      }
     
       // Define the sign of the throttle according to the reference sign
       if ( ESCPID_Reference[i] >= 0 )

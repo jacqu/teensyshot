@@ -31,11 +31,11 @@ typedef struct {
   uint32_t      magic;                        // Magic number
   int           err[ESCPID_MAX_ESC];          // Last error number
   int           cmd[ESCPID_MAX_ESC];          // Current ESC command value
-  float         tlm_deg[ESCPID_MAX_ESC];      // ESC temperature (°C)
-  float         tlm_volt[ESCPID_MAX_ESC];     // Voltage of the ESC power supply (V)
-  float         tlm_amp[ESCPID_MAX_ESC];      // ESC current (A)
-  float         tlm_mah[ESCPID_MAX_ESC];      // ESC consumption (mAh)
-  float         tlm_rpm[ESCPID_MAX_ESC];      // Motor rpm (rpm)
+  float         deg[ESCPID_MAX_ESC];          // ESC temperature (°C)
+  float         volt[ESCPID_MAX_ESC];         // Voltage of the ESC power supply (V)
+  float         amp[ESCPID_MAX_ESC];          // ESC current (A)
+  float         mah[ESCPID_MAX_ESC];          // ESC consumption (mAh)
+  float         rpm[ESCPID_MAX_ESC];          // Motor rpm (rpm)
 } ESCPIDcomm_struct_t;
 
 // Host->teensy communication data structure
