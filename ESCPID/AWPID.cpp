@@ -13,19 +13,19 @@
 #include "AWPID.h"
 
 // Global variables
-double  AWPID_Kp[AWPID_MAX_NB];       // Proportional gain
-double  AWPID_Ki[AWPID_MAX_NB];       // Integral gain
-double  AWPID_Kd[AWPID_MAX_NB];       // Derivative gain
-double  AWPID_f[AWPID_MAX_NB];        // Pole of the derivative term lowpass filter
-double  AWPID_Min[AWPID_MAX_NB];      // Lower saturation
-double  AWPID_Max[AWPID_MAX_NB];      // Upper saturation
-double  AWPID_u0[AWPID_MAX_NB];       // Control signal before saturation
-double  AWPID_e0[AWPID_MAX_NB];       // Error signal
-double  AWPID_e1[AWPID_MAX_NB];       // Last sample error signal
-double  AWPID_ui0[AWPID_MAX_NB];      // Integral term
-double  AWPID_ui1[AWPID_MAX_NB];      // Last sample integral term
-double  AWPID_ud0[AWPID_MAX_NB];      // Derivative term
-double  AWPID_ud1[AWPID_MAX_NB];      // Last sample derivative term
+float   AWPID_Kp[AWPID_MAX_NB];       // Proportional gain
+float   AWPID_Ki[AWPID_MAX_NB];       // Integral gain
+float   AWPID_Kd[AWPID_MAX_NB];       // Derivative gain
+float   AWPID_f[AWPID_MAX_NB];        // Pole of the derivative term lowpass filter
+float   AWPID_Min[AWPID_MAX_NB];      // Lower saturation
+float   AWPID_Max[AWPID_MAX_NB];      // Upper saturation
+float   AWPID_u0[AWPID_MAX_NB];       // Control signal before saturation
+float   AWPID_e0[AWPID_MAX_NB];       // Error signal
+float   AWPID_e1[AWPID_MAX_NB];       // Last sample error signal
+float   AWPID_ui0[AWPID_MAX_NB];      // Integral term
+float   AWPID_ui1[AWPID_MAX_NB];      // Last sample integral term
+float   AWPID_ud0[AWPID_MAX_NB];      // Derivative term
+float   AWPID_ud1[AWPID_MAX_NB];      // Last sample derivative term
 uint8_t AWPID_n = 0;                  // Number of initialized PIDs
 
 //
@@ -44,12 +44,12 @@ uint8_t AWPID_n = 0;                  // Number of initialized PIDs
 //  C(z) = Kp + Ki z / ( z - 1 ) + Kd( z - 1 ) / (z - f )
 //
 void AWPID_init(    uint8_t n,
-                    double  *Kp,
-                    double  *Ki,
-                    double  *Kd,
-                    double  *f,
-                    double  *Min,
-                    double  *Max
+                    float  *Kp,
+                    float  *Ki,
+                    float  *Kd,
+                    float  *f,
+                    float  *Min,
+                    float  *Max
                      )  {
 
   int      i;
@@ -89,9 +89,9 @@ void AWPID_init(    uint8_t n,
 // Computation of the ith control signal
 //
 void AWPID_control( uint8_t i,
-                    double Reference,
-                    double Measurement,
-                    double *Control )  {
+                    float Reference,
+                    float Measurement,
+                    float *Control )  {
 
   if ( i >= AWPID_n )
     return;
@@ -151,12 +151,12 @@ void AWPID_control( uint8_t i,
 // Can be called on-the-fly. 
 //
 void AWPID_tune(    uint8_t i,
-                    double  Kp,
-                    double  Ki,
-                    double  Kd,
-                    double  f,
-                    double  Min,
-                    double  Max
+                    float  Kp,
+                    float  Ki,
+                    float  Kd,
+                    float  f,
+                    float  Min,
+                    float  Max
                      )  {
   if ( i >= AWPID_n )
     return;

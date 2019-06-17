@@ -33,34 +33,52 @@
 #define HOST_NB_PING        100                 // Nb roundtrip communication
 
 // Globals
-int                 host_fd = -1;                 // Serial port file descriptor
-struct termios      host_oldtio;                  // Backup of old configuration
+int                 Host_fd = -1;               // Serial port file descriptor
+struct termios      Host_oldtio;                // Backup of old configuration
 
+ESCPIDcomm_struct_t ESCPID_comm = {
+                                  ESCPID_COMM_MAGIC,
+                                  {},
+                                  {},
+                                  {},
+                                  {},
+                                  {},
+                                  {}
+                                  };
+Hostcomm_struct_t   Host_comm =   {
+                                  ESCPID_COMM_MAGIC,
+                                  {},
+                                  {},
+                                  {},
+                                  {},
+                                  {}
+                                  };
+                                  
 //
 //  Initialize serial port
 //
-int host_init_port( char *portname )  {
+int Host_init_port( char *portname )  {
   struct termios        newtio;
   struct serial_struct  serial;
 
   // Open device
-  host_fd = open( portname, O_RDWR | O_NOCTTY ); 
-  if ( host_fd < 0 )  { 
+  Host_fd = open( portname, O_RDWR | O_NOCTTY ); 
+  if ( Host_fd < 0 )  { 
     perror( portname ); 
     return -1; 
   }
   
   /* Set the low_latency flag */
-  if ( ioctl( host_fd, TIOCGSERIAL, &serial ) == -1 )  {
+  if ( ioctl( Host_fd, TIOCGSERIAL, &serial ) == -1 )  {
     perror( "TIOCGSERIAL" );
   } 
   serial.flags |= ASYNC_LOW_LATENCY;
-  if ( ioctl( host_fd, TIOCSSERIAL, &serial ) == -1 )  {
+  if ( ioctl( Host_fd, TIOCSSERIAL, &serial ) == -1 )  {
     perror( "TIOCSSERIAL" );
   }
 
   /* Save current port settings */
-  tcgetattr( host_fd, &  host_oldtio ); 
+  tcgetattr( Host_fd, &  Host_oldtio ); 
 
   /* Define new settings */
   bzero( &newtio, sizeof(newtio) );
@@ -77,8 +95,8 @@ int host_init_port( char *portname )  {
   newtio.c_cc[VMIN] = 0;
 
   /* Apply the settings */
-  tcflush( host_fd, TCIFLUSH );
-  tcsetattr( host_fd, TCSANOW, &newtio );
+  tcflush( Host_fd, TCIFLUSH );
+  tcsetattr( Host_fd, TCSANOW, &newtio );
 
   return 0;
 }
@@ -86,12 +104,12 @@ int host_init_port( char *portname )  {
 //
 //  Release serial port
 //
-void host_release_port( void )  {
+void Host_release_port( void )  {
 
   /* Restore initial settings */
-  tcsetattr( host_fd, TCSANOW, &  host_oldtio );
-  close( host_fd );
-  host_fd = -1;
+  tcsetattr( Host_fd, TCSANOW, &  Host_oldtio );
+  close( Host_fd );
+  Host_fd = -1;
 }
 
 //
@@ -106,7 +124,7 @@ int main( int argc, char *argv[] )  {
   unsigned long long  elapsed_us;
   
   // Initialize serial port
-  if ( host_init_port( HOST_MODEMDEVICE ) )  {
+  if ( Host_init_port( HOST_MODEMDEVICE ) )  {
     fprintf( stderr, "Error initializing serial port.\n" );
     exit( -1 );
   }
@@ -115,21 +133,21 @@ int main( int argc, char *argv[] )  {
   for ( i = 0; i < HOST_NB_PING; i++ )  {
     
     // Send ping char
-    res = write(   host_fd, &snd, 1 );
+    res = write(   Host_fd, &ESCPID_comm, sizeof( ESCPID_comm ) );
     if ( res < 0 )  { 
-      perror( "write ping char" ); 
+      perror( "write ESCPID_comm" ); 
       exit( -2 ); 
     }
-    fsync( host_fd );
+    fsync( Host_fd );
     
     // Wait for response
     
-    res = 0;
     // Get current time
     clock_gettime( CLOCK_MONOTONIC, &start );
     
+    res = 0;
     do  {
-      ret = read(   host_fd, &rcv, 1 );
+      ret = read(   Host_fd, &Host_comm, sizeof( Host_comm ) );
       if ( ret > 0 )  {
         res += ret;
       }
@@ -146,18 +164,18 @@ int main( int argc, char *argv[] )  {
       if ( elapsed_us / 100000 > HOST_READ_TIMEOUT )
         break;
       
-    } while ( res < 1 );
+    } while ( res < sizeof( Host_comm ) );
     
     // Check response
-    if ( res != 1 )
-      fprintf( stderr, "No response.\n" );
-    if ( rcv !=  HOST_PING_CHAR )
-      fprintf( stderr, "Invalid response.\n" );
+    if ( res != sizeof( Host_comm ) )
+      fprintf( stderr, "Packet with bad size received.\n" );
+    if ( Host_comm.magic !=  ESCPID_COMM_MAGIC )
+      fprintf( stderr, "Invalid magic number.\n" );
     fprintf( stderr, "Delay: %llu us\n", elapsed_us );
   }
   
   // Restoring serial port initial configuration
-  host_release_port( );
+  Host_release_port( );
   
   return 0;
 }

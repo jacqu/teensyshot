@@ -18,18 +18,18 @@
 //#define ESCPID_DEBUG_MSG                        // Send debug messages to serial
 
 // Globals
-double    ESCPID_Reference[ESCPID_NB_ESC] = {};
-double    ESCPID_Measurement[ESCPID_NB_ESC] = {};
-double    ESCPID_Control[ESCPID_NB_ESC] = {};
+float    ESCPID_Reference[ESCPID_NB_ESC] = {};
+float    ESCPID_Measurement[ESCPID_NB_ESC] = {};
+float    ESCPID_Control[ESCPID_NB_ESC] = {};
 char      ESCPID_error_msg[ESCPID_ERROR_MSG_LENGTH];
 uint16_t  ESCPID_comm_wd = 0;
 
-double    ESCPID_Kp[ESCPID_NB_ESC];
-double    ESCPID_Ki[ESCPID_NB_ESC];
-double    ESCPID_Kd[ESCPID_NB_ESC];
-double    ESCPID_f[ESCPID_NB_ESC];
-double    ESCPID_Min[ESCPID_NB_ESC];
-double    ESCPID_Max[ESCPID_NB_ESC];
+float    ESCPID_Kp[ESCPID_NB_ESC];
+float    ESCPID_Ki[ESCPID_NB_ESC];
+float    ESCPID_Kd[ESCPID_NB_ESC];
+float    ESCPID_f[ESCPID_NB_ESC];
+float    ESCPID_Min[ESCPID_NB_ESC];
+float    ESCPID_Max[ESCPID_NB_ESC];
 
 ESCPIDcomm_struct_t ESCPID_comm = {
                                   ESCPID_COMM_MAGIC,
@@ -296,7 +296,6 @@ void setup() {
 //
 void loop( ) {
   static int    i, ret;
-  static float  mes_rpm;
 
   // Check for next timer event
   ret = ESCCMD_tic( );
@@ -312,8 +311,7 @@ void loop( ) {
     
       // Compute control signal only if telemetry is valid
       // In case of invalid telemetry, last control signal is sent
-      if ( !( ESCCMD_read_rpm( i, &mes_rpm ) ) ) {
-        ESCPID_Measurement[i] = (double)mes_rpm;
+      if ( !( ESCCMD_read_rpm( i, &ESCPID_Measurement[i] ) ) ) {
         AWPID_control(  i, 
                         ESCPID_Reference[i], 
                         ESCPID_Measurement[i], 
