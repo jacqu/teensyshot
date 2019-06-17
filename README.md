@@ -4,10 +4,12 @@
 - Telemetry is received through UART at 115200bps
 - Velocity PID control running at 500Hz is implemented for up to 6 motors
 ## File description
-- DSHOT.cpp: DSHOT600 communication.
-- AWPID.cpp: Anti-Windup PID.
-- ESCCMD.cpp: Bidirectional communication between teensy and ESC.
-- ESCPID.ino: main program.
+- ESCPID: code running on the teensy
+	- DSHOT.cpp: DSHOT600 communication.
+	- AWPID.cpp: Anti-Windup PID.
+	- ESCCMD.cpp: Bidirectional communication between teensy and ESC.
+	- ESCPID.ino: main program.
+- host: code running on a Linux platform connected to the teensy
 ## API description
 ### Incoming data
 int16_t:
