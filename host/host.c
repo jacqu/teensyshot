@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <time.h>
 #include <string.h>
@@ -118,7 +119,6 @@ void Host_release_port( void )  {
 int main( int argc, char *argv[] )  {
     
   int                 i, ret, res = 0;
-  unsigned char       snd = HOST_PING_CHAR;
   unsigned char       rcv = 0;
   struct timespec     start, cur;
   unsigned long long  elapsed_us;
