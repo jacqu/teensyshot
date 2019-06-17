@@ -43,7 +43,6 @@ ESCPIDcomm_struct_t ESCPID_comm = {
                                   {},
                                   {},
                                   {},
-                                  {},
                                   {}
                                   };
 Hostcomm_struct_t   Host_comm =   {
@@ -61,7 +60,12 @@ Hostcomm_struct_t   Host_comm =   {
 int Host_init_port( char *portname )  {
   struct termios        newtio;
   struct serial_struct  serial;
-
+  
+  printf("sizeof(ESCPID_comm)=", sizeof(ESCPID_comm));
+  printf("sizeof(Host_comm)=", sizeof(Host_comm));
+  
+  return 0;
+  
   // Open device
   Host_fd = open( portname, O_RDWR | O_NOCTTY ); 
   if ( Host_fd < 0 )  { 

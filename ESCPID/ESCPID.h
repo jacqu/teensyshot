@@ -26,26 +26,24 @@
 #define ESCPID_ERROR_MAGIC        -1                // Magic number error code
 
 // Teensy->host communication data structure
-// Data structure is robust to 4-bytes memory alignment
 typedef struct {
   uint32_t      magic;                        // Magic number
-  int           err[ESCPID_MAX_ESC];          // Last error number
-  int           cmd[ESCPID_MAX_ESC];          // Current ESC command value
-  float         deg[ESCPID_MAX_ESC];          // ESC temperature (°C)
-  float         volt[ESCPID_MAX_ESC];         // Voltage of the ESC power supply (V)
-  float         amp[ESCPID_MAX_ESC];          // ESC current (A)
-  float         mah[ESCPID_MAX_ESC];          // ESC consumption (mAh)
-  float         rpm[ESCPID_MAX_ESC];          // Motor rpm (rpm)
+  int8_t        err[ESCPID_MAX_ESC];          // Last error number
+  uint8_t       deg[ESCPID_MAX_ESC];          // ESC temperature (°C)
+  uint16_t      cmd[ESCPID_MAX_ESC];          // Current ESC command value
+  uint16_t      volt[ESCPID_MAX_ESC];         // Voltage of the ESC power supply (0.01V)
+  uint16_t      amp[ESCPID_MAX_ESC];          // ESC current (0.01A)
+  int16_t       rpm[ESCPID_MAX_ESC];          // Motor rpm (rpm)
 } ESCPIDcomm_struct_t;
 
 // Host->teensy communication data structure
 typedef struct {
   uint32_t      magic;                        // Magic number
-  float         RPM_r[ESCPID_MAX_ESC];        // Velocity reference (rpm)
-  float         PID_P[ESCPID_MAX_ESC];        // PID proportional gain
-  float         PID_I[ESCPID_MAX_ESC];        // PID integral gain
-  float         PID_D[ESCPID_MAX_ESC];        // PID derivative gain
-  float         PID_f[ESCPID_MAX_ESC];        // PID filtering pole
+  int16_t       RPM_r[ESCPID_MAX_ESC];        // Velocity reference (rpm)
+  uint16_t      PID_P[ESCPID_MAX_ESC];        // PID proportional gain
+  uint16_t      PID_I[ESCPID_MAX_ESC];        // PID integral gain
+  uint16_t      PID_D[ESCPID_MAX_ESC];        // PID derivative gain
+  uint16_t      PID_f[ESCPID_MAX_ESC];        // PID filtering pole
 } Hostcomm_struct_t;
 
 #endif

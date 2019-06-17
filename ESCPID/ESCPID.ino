@@ -18,18 +18,18 @@
 //#define ESCPID_DEBUG_MSG                        // Send debug messages to serial
 
 // Globals
-float    ESCPID_Reference[ESCPID_NB_ESC] = {};
-float    ESCPID_Measurement[ESCPID_NB_ESC] = {};
-float    ESCPID_Control[ESCPID_NB_ESC] = {};
+float     ESCPID_Reference[ESCPID_NB_ESC] = {};
+float     ESCPID_Measurement[ESCPID_NB_ESC] = {};
+float     ESCPID_Control[ESCPID_NB_ESC] = {};
 char      ESCPID_error_msg[ESCPID_ERROR_MSG_LENGTH];
 uint16_t  ESCPID_comm_wd = 0;
 
-float    ESCPID_Kp[ESCPID_NB_ESC];
-float    ESCPID_Ki[ESCPID_NB_ESC];
-float    ESCPID_Kd[ESCPID_NB_ESC];
-float    ESCPID_f[ESCPID_NB_ESC];
-float    ESCPID_Min[ESCPID_NB_ESC];
-float    ESCPID_Max[ESCPID_NB_ESC];
+float     ESCPID_Kp[ESCPID_NB_ESC];
+float     ESCPID_Ki[ESCPID_NB_ESC];
+float     ESCPID_Kd[ESCPID_NB_ESC];
+float     ESCPID_f[ESCPID_NB_ESC];
+float     ESCPID_Min[ESCPID_NB_ESC];
+float     ESCPID_Max[ESCPID_NB_ESC];
 
 ESCPIDcomm_struct_t ESCPID_comm = {
                                   ESCPID_COMM_MAGIC,
