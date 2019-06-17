@@ -126,6 +126,9 @@ int ESCPID_comm_update( void ) {
       
       // Send data structure to host
       Serial.write( ptout, sizeof( ESCPID_comm ) );
+      
+      // Force immediate transmission
+      Serial.send_now( );
     }
   }
 
