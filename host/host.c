@@ -173,8 +173,14 @@ int main( int argc, char *argv[] )  {
     } while ( res < sizeof( ESCPID_comm ) );
     
     // Check response size
-    if ( res != sizeof( ESCPID_comm ) )
+    if ( res != sizeof( ESCPID_comm ) )  {
       fprintf( stderr, "Packet with bad size received.\n" );
+      
+      // Flush input buffer
+      while ( ( ret = read( Host_fd, pt_in, 1 ) ) )
+        if ( ret < 0 )
+          break;
+    }
       
     // Check magic number
     if ( ESCPID_comm.magic !=  ESCPID_COMM_MAGIC )
