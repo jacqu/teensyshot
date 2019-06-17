@@ -67,15 +67,6 @@ int Host_init_port( char *portname )  {
     perror( portname ); 
     return -1; 
   }
-  
-  /* Set the low_latency flag */
-  if ( ioctl( Host_fd, TIOCGSERIAL, &serial ) == -1 )  {
-    perror( "TIOCGSERIAL" );
-  } 
-  serial.flags |= ASYNC_LOW_LATENCY;
-  if ( ioctl( Host_fd, TIOCSSERIAL, &serial ) == -1 )  {
-    perror( "TIOCSSERIAL" );
-  }
 
   /* Save current port settings */
   tcgetattr( Host_fd, &  Host_oldtio ); 
@@ -131,7 +122,7 @@ int main( int argc, char *argv[] )  {
   // Testing roundtrip serial link duration
   for ( i = 0; i < HOST_NB_PING; i++ )  {
     
-    // Send ping char
+    // Send output structure
     res = write(   Host_fd, &Host_comm, sizeof( Host_comm ) );
     if ( res < 0 )  { 
       perror( "write Host_comm" ); 

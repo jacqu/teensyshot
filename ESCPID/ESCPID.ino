@@ -94,10 +94,14 @@ int ESCPID_comm_update( void ) {
       
       // Update PID tuning parameters
       for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
-        ESCPID_Kp[i] = Host_comm.PID_P[i];
-        ESCPID_Ki[i] = Host_comm.PID_I[i];
-        ESCPID_Kd[i] = Host_comm.PID_D[i];
-        ESCPID_f[i] = Host_comm.PID_f[i];
+        
+        // Gain conversion from int to float
+        ESCPID_Kp[i] =  Host_comm.PID_P[i];
+        ESCPID_Ki[i] =  Host_comm.PID_I[i];
+        ESCPID_Kd[i] =  Host_comm.PID_D[i];
+        ESCPID_f[i] =   Host_comm.PID_f[i];
+        
+        // Update PID tuning
         AWPID_tune(     i,
                         ESCPID_Kp[i],
                         ESCPID_Ki[i],
@@ -110,13 +114,14 @@ int ESCPID_comm_update( void ) {
       
       // Update output data structure values
       for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
-        ESCCMD_read_err( i, &ESCPID_comm.err[i] );    // Last error number
-        ESCCMD_read_cmd( i, &ESCPID_comm.cmd[i] );    // Current ESC command value
-        ESCCMD_read_deg( i, &ESCPID_comm.deg[i] );    // ESC temperature (°C)
-        ESCCMD_read_volt( i, &ESCPID_comm.volt[i] );  // Voltage of the ESC power supply (V)
-        ESCCMD_read_amp( i, &ESCPID_comm.amp[i] );    // ESC current (A)
-        ESCCMD_read_mah( i, &ESCPID_comm.mah[i] );    // ESC consumption (mAh)
-        ESCCMD_read_rpm( i, &ESCPID_comm.rpm[i] );    // Motor velocity (rpm)
+        ESCCMD_read_err( i, &ESCPID_comm.err[i] );
+        ESCCMD_read_cmd( i, &ESCPID_comm.cmd[i] );
+        ESCCMD_read_deg( i, &ESCPID_comm.deg[i] );
+        ESCCMD_read_volt( i, &ESCPID_comm.volt[i] );
+        ESCCMD_read_amp( i, &ESCPID_comm.amp[i] );
+        // If telemetry invalid, force rpm = 0
+        if ( ESCCMD_read_rpm( i, &ESCPID_comm.rpm[i] ) < 0 )
+          ESCPID_comm.rpm[i] = 0;    
       }
       
       // Send data structure to host
@@ -311,7 +316,12 @@ void loop( ) {
     
       // Compute control signal only if telemetry is valid
       // In case of invalid telemetry, last control signal is sent
-      if ( !( ESCCMD_read_rpm( i, &ESCPID_Measurement[i] ) ) ) {
+      if ( ESCPID_comm.rpm[i] ) {
+      
+        // Update measurement
+        ESCPID_Measurement[i] = ESCPID_comm.rpm[i];
+        
+        // Update control signal
         AWPID_control(  i, 
                         ESCPID_Reference[i], 
                         ESCPID_Measurement[i], 

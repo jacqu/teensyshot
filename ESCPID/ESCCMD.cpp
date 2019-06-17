@@ -20,9 +20,9 @@
 //
 uint8_t             ESCCMD_n;                               // Number of initialized outputs
 
-volatile uint16_t   ESCCMD_state[ESCCMD_MAX_ESC];           // Current state of the cmd subsystem
+volatile uint8_t    ESCCMD_state[ESCCMD_MAX_ESC];           // Current state of the cmd subsystem
 uint16_t            ESCCMD_CRC_errors[ESCCMD_MAX_ESC];      // Overall number of CRC error since start
-int16_t             ESCCMD_last_error[ESCCMD_MAX_ESC];      // Last error code
+int8_t              ESCCMD_last_error[ESCCMD_MAX_ESC];      // Last error code
 uint16_t            ESCCMD_cmd[ESCCMD_MAX_ESC];             // Last command
 uint16_t            ESCCMD_throttle_wd[ESCCMD_MAX_ESC];     // Throttle watchdog counter
 uint8_t             ESCCMD_tlm_deg[ESCCMD_MAX_ESC];         // ESC temperature (°C)
@@ -493,7 +493,7 @@ int ESCCMD_stop( uint8_t i ) {
 //
 //  Return last error code of motor number i
 //
-int ESCCMD_read_err( uint8_t i, int *err )  {
+int ESCCMD_read_err( uint8_t i, int8_t *err )  {
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -504,7 +504,7 @@ int ESCCMD_read_err( uint8_t i, int *err )  {
     return ESCCMD_ERROR_PARAM;
   
 
-  *err = (int)ESCCMD_last_error[i];
+  *err = ESCCMD_last_error[i];
 
   return 0;
 }
@@ -512,7 +512,7 @@ int ESCCMD_read_err( uint8_t i, int *err )  {
 //
 //  Return last command code of motor number i
 //
-int ESCCMD_read_cmd( uint8_t i, int *cmd )  {
+int ESCCMD_read_cmd( uint8_t i, uint16_t *cmd )  {
 
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
@@ -523,7 +523,7 @@ int ESCCMD_read_cmd( uint8_t i, int *cmd )  {
     return ESCCMD_ERROR_PARAM;
   
 
-  *cmd = (int)ESCCMD_cmd[i];
+  *cmd = ESCCMD_cmd[i];
 
   return 0;
 }
@@ -532,7 +532,7 @@ int ESCCMD_read_cmd( uint8_t i, int *cmd )  {
 //  Read temperature of motor number i
 //  Unit is degree Celsius
 //
-int ESCCMD_read_deg( uint8_t i, float *deg )  {
+int ESCCMD_read_deg( uint8_t i, uint8_t *deg )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
@@ -554,7 +554,7 @@ int ESCCMD_read_deg( uint8_t i, float *deg )  {
 
   // Check if telemetry is valid
   if ( ESCCMD_tlm_valid[i] )  {
-    *deg = (float)ESCCMD_tlm_deg[i];
+    *deg = ESCCMD_tlm_deg[i];
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
@@ -567,7 +567,7 @@ int ESCCMD_read_deg( uint8_t i, float *deg )  {
 //  Read dc power supply voltage of motor number i
 //  Unit is Volt
 //
-int ESCCMD_read_volt( uint8_t i, float *volt )  {
+int ESCCMD_read_volt( uint8_t i, uint16_t *volt )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
@@ -589,7 +589,7 @@ int ESCCMD_read_volt( uint8_t i, float *volt )  {
 
   // Check if telemetry is valid
   if ( ESCCMD_tlm_valid[i] )  {
-    *volt = (float)ESCCMD_tlm_volt[i] * 0.01;
+    *volt = ESCCMD_tlm_volt[i];
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
@@ -602,7 +602,7 @@ int ESCCMD_read_volt( uint8_t i, float *volt )  {
 //  Read current of motor number i
 //  Unit is Ampere
 //
-int ESCCMD_read_amp( uint8_t i, float *amp )  {
+int ESCCMD_read_amp( uint8_t i, uint16_t *amp )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
@@ -624,7 +624,7 @@ int ESCCMD_read_amp( uint8_t i, float *amp )  {
 
   // Check if telemetry is valid
   if ( ESCCMD_tlm_valid[i] )  {
-    *amp = (float)ESCCMD_tlm_amp[i] * 0.01;
+    *amp = ESCCMD_tlm_amp[i];
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
@@ -637,7 +637,7 @@ int ESCCMD_read_amp( uint8_t i, float *amp )  {
 //  Read consumption of motor number i
 //  Unit is milli Ampere.hour 
 //
-int ESCCMD_read_mah( uint8_t i, float *mah )  {
+int ESCCMD_read_mah( uint8_t i, uint16_t *mah )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
@@ -659,7 +659,7 @@ int ESCCMD_read_mah( uint8_t i, float *mah )  {
 
   // Check if telemetry is valid
   if ( ESCCMD_tlm_valid[i] )  {
-    *mah = (float)ESCCMD_tlm_mah[i];
+    *mah = ESCCMD_tlm_mah[i];
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
@@ -673,7 +673,7 @@ int ESCCMD_read_mah( uint8_t i, float *mah )  {
 //  Unit is round per minute
 //  The sign of the measurement depends on the last throttle sign
 //
-int ESCCMD_read_rpm( uint8_t i, float *rpm )  {
+int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
   static uint8_t local_state;
 
   // Check if everything is initialized
@@ -701,17 +701,18 @@ int ESCCMD_read_rpm( uint8_t i, float *rpm )  {
       // 48 - 1047    : positive direction (48 slowest)
       // 1048 - 2047  : negative direction (1048 slowest)
       if ( ESCCMD_cmd[i] > DSHOT_CMD_MAX + 1 + ESCCMD_MAX_3D_THROTTLE )
-        *rpm = (float)( -ESCCMD_tlm_rpm[i] );  // 3D mode negative direction
+        *rpm = -ESCCMD_tlm_rpm[i];  // 3D mode negative direction
       else
-        *rpm = (float)( ESCCMD_tlm_rpm[i] );   // 3D mode positive direction
+        *rpm = ESCCMD_tlm_rpm[i];   // 3D mode positive direction
     }
     else {
       // Default mode
-      *rpm = (float)( ESCCMD_tlm_rpm[i] );
+      *rpm = ESCCMD_tlm_rpm[i];
     }
-
-    // Conversion in rpm
-    *rpm *= 100.0 / ( ESCCMD_TLM_NB_POLES / 2 );
+    
+    // Convert electrical rpm * 100 into motor rpm * 100
+    
+    *rpm /= ( ESCCMD_TLM_NB_POLES / 2 );
   }
   else {
     ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
