@@ -10,8 +10,8 @@
 #define AWPID_MAX_NB          6    // Maximum number of PIDs
 
 // Function prototypes
-void AWPID_init( uint8_t, double*, double*, double*, double*, double*, double* );
-void AWPID_control( uint8_t, double, double, double* );
-void AWPID_tune( uint8_t, double, double, double, double, double, double );
+void AWPID_init( uint8_t, float*, float*, float*, float*, float*, float* );
+void AWPID_control( uint8_t, float, float, float* );
+void AWPID_tune( uint8_t, float, float, float, float, float, float );
 
 #endif
