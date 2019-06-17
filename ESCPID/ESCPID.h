@@ -26,6 +26,7 @@
 #define ESCPID_ERROR_MAGIC        -1                // Magic number error code
 
 // Teensy->host communication data structure
+// sizeof(ESCPID_comm)=64 to match USB 1.0 buffer size
 typedef struct {
   uint32_t      magic;                        // Magic number
   int8_t        err[ESCPID_MAX_ESC];          // Last error number
@@ -37,6 +38,7 @@ typedef struct {
 } ESCPIDcomm_struct_t;
 
 // Host->teensy communication data structure
+// sizeof(Host_comm)=64 to match USB 1.0 buffer size
 typedef struct {
   uint32_t      magic;                        // Magic number
   int16_t       RPM_r[ESCPID_MAX_ESC];        // Velocity reference (rpm)
