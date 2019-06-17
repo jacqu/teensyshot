@@ -119,6 +119,7 @@ void Host_release_port( void )  {
 int main( int argc, char *argv[] )  {
     
   int                 i, ret, res = 0;
+  uint8_t             *pt_in = (uint8_t*)(&ESCPID_comm);
   struct timespec     start, cur;
   unsigned long long  elapsed_us;
   
@@ -149,7 +150,9 @@ int main( int argc, char *argv[] )  {
     ESCPID_comm.magic = 0;
     
     do  {
-      ret = read(   Host_fd, &ESCPID_comm, sizeof( ESCPID_comm ) );
+      ret = read( Host_fd, &pt_in[res], 1 );
+      
+      // Data received
       if ( ret > 0 )  {
         res += ret;
       }
