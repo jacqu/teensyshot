@@ -15,7 +15,7 @@
 #include <time.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/ioctl.h> 
+#include <sys/ioctl.h>
 #include <linux/serial.h>
 #include "host.h"
 
@@ -28,7 +28,8 @@
 // Bottom, next RJ45      : platform-3f980000.usb-usb-0:1.1.3:1.0
 // Top, away from RJ45    : platform-3f980000.usb-usb-0:1.3:1.0
 // Top, next RJ45         : platform-3f980000.usb-usb-0:1.1.2:1.0
-#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
+//#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
+#define HOST_MODEMDEVICE    "/dev/ttyACM0"
 #define HOST_BAUDRATE       B4000000            // Serial baudrate
 #define HOST_READ_TIMEOUT   5                   // Tenth of second
 #define HOST_NB_PING        100                 // Nb roundtrip communication
@@ -53,23 +54,23 @@ Hostcomm_struct_t   Host_comm =   {
                                   {},
                                   {}
                                   };
-                                  
+
 //
 //  Initialize serial port
 //
 int Host_init_port( char *portname )  {
   struct termios        newtio;
   struct serial_struct  serial;
-  
+
   // Open device
-  Host_fd = open( portname, O_RDWR | O_NOCTTY ); 
-  if ( Host_fd < 0 )  { 
-    perror( portname ); 
-    return -1; 
+  Host_fd = open( portname, O_RDWR | O_NOCTTY );
+  if ( Host_fd < 0 )  {
+    perror( portname );
+    return -1;
   }
 
   /* Save current port settings */
-  tcgetattr( Host_fd, &  Host_oldtio ); 
+  tcgetattr( Host_fd, &  Host_oldtio );
 
   /* Define new settings */
   bzero( &newtio, sizeof(newtio) );
@@ -82,7 +83,7 @@ int Host_init_port( char *portname )  {
   newtio.c_lflag = 0;
 
   /* Inter-character timer  */
-  newtio.c_cc[VTIME] = HOST_READ_TIMEOUT;   
+  newtio.c_cc[VTIME] = HOST_READ_TIMEOUT;
   newtio.c_cc[VMIN] = 0;
 
   /* Apply the settings */
@@ -107,81 +108,81 @@ void Host_release_port( void )  {
 //  main
 //
 int main( int argc, char *argv[] )  {
-    
+
   int                 i, ret, res = 0;
   uint8_t             *pt_in = (uint8_t*)(&ESCPID_comm);
   struct timespec     start, cur;
   unsigned long long  elapsed_us;
-  
+
   // Initialize serial port
   if ( Host_init_port( HOST_MODEMDEVICE ) )  {
     fprintf( stderr, "Error initializing serial port.\n" );
     exit( -1 );
   }
-  
+
   // Testing roundtrip serial link duration
   for ( i = 0; i < HOST_NB_PING; i++ )  {
-    
+
     // Send output structure
     res = write(   Host_fd, &Host_comm, sizeof( Host_comm ) );
-    if ( res < 0 )  { 
-      perror( "write Host_comm" ); 
-      exit( -2 ); 
+    if ( res < 0 )  {
+      perror( "write Host_comm" );
+      exit( -2 );
     }
     fsync( Host_fd );
-    
+
     // Wait for response
-    
+
     // Get current time
     clock_gettime( CLOCK_MONOTONIC, &start );
-    
+
     // Reset byte counter and magic number
     res = 0;
     ESCPID_comm.magic = 0;
-    
+
     do  {
       ret = read( Host_fd, &pt_in[res], 1 );
-      
+
       // Data received
       if ( ret > 0 )  {
         res += ret;
       }
-      
+
       // Read error
       if ( ret < 0 )
         break;
-        
+
       // Compute time elapsed
       clock_gettime( CLOCK_MONOTONIC, &cur );
-      elapsed_us =  ( cur.tv_sec * 1e6 + cur.tv_nsec / 1e3 ) - 
+      elapsed_us =  ( cur.tv_sec * 1e6 + cur.tv_nsec / 1e3 ) -
                     ( start.tv_sec * 1e6 + start.tv_nsec / 1e3 );
-      
+
       // Timeout
       if ( elapsed_us / 100000 > HOST_READ_TIMEOUT )
         break;
-      
+
     } while ( res < sizeof( ESCPID_comm ) );
-    
+
     // Check response size
     if ( res != sizeof( ESCPID_comm ) )  {
       fprintf( stderr, "Packet with bad size received.\n" );
-      
+
       // Flush input buffer
       while ( ( ret = read( Host_fd, pt_in, 1 ) ) )
         if ( ret < 0 )
           break;
     }
-      
+
     // Check magic number
     if ( ESCPID_comm.magic !=  ESCPID_COMM_MAGIC )
       fprintf( stderr, "Invalid magic number.\n" );
-    
-    // Print rountrip duration 
+
+    // Print rountrip duration
     fprintf( stderr, "Delay: %llu us\n", elapsed_us );
   }
-  
+
   // Restoring serial port initial configuration
   Host_release_port( );
-  
+
   return 0;
 }
