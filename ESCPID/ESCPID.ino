@@ -341,7 +341,7 @@ void loop( ) {
       if ( ESCPID_comm_wd < ESCPID_COMM_WD_LEVEL ) {
         ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
         ESCPID_comm_wd++;
-        }
+      }
         
       // Process error
       #ifdef ESCPID_DEBUG_MSG

@@ -556,9 +556,8 @@ int ESCCMD_read_deg( uint8_t i, uint8_t *deg )  {
   if ( ESCCMD_tlm_valid[i] )  {
     *deg = ESCCMD_tlm_deg[i];
   }
-  else {
-    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
-  }
+  else
+    return ESCCMD_ERROR_TLM_INVAL;
 
   return 0;
 }
@@ -591,9 +590,8 @@ int ESCCMD_read_volt( uint8_t i, uint16_t *volt )  {
   if ( ESCCMD_tlm_valid[i] )  {
     *volt = ESCCMD_tlm_volt[i];
   }
-  else {
-    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
-  }
+  else
+    return ESCCMD_ERROR_TLM_INVAL;
 
   return 0;
 }
@@ -626,9 +624,8 @@ int ESCCMD_read_amp( uint8_t i, uint16_t *amp )  {
   if ( ESCCMD_tlm_valid[i] )  {
     *amp = ESCCMD_tlm_amp[i];
   }
-  else {
-    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
-  }
+  else
+    return ESCCMD_ERROR_TLM_INVAL;
 
   return 0;
 }
@@ -661,9 +658,8 @@ int ESCCMD_read_mah( uint8_t i, uint16_t *mah )  {
   if ( ESCCMD_tlm_valid[i] )  {
     *mah = ESCCMD_tlm_mah[i];
   }
-  else {
-    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
-  }
+  else
+    return ESCCMD_ERROR_TLM_INVAL;
 
   return 0;
 }
@@ -714,9 +710,8 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
     
     *rpm /= ( ESCCMD_TLM_NB_POLES / 2 );
   }
-  else {
-    ESCCMD_ERROR( ESCCMD_ERROR_TLM_INVAL )
-  }
+  else
+    return ESCCMD_ERROR_TLM_INVAL;
 
   return 0;
 }
