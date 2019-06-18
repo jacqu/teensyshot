@@ -238,6 +238,11 @@ int ESCCMD_3D_on( void )  {
   // Minimum delay before next command
   delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
 
+  // Flush incoming serial buffers due to a transcient voltage 
+  // appearing on Tx when saving generating a 0xff serial byte
+  for ( i = 0; i < ESCCMD_n; i++ )
+    ESCCMD_serial[i].clear( );
+
   // ESC is disarmed after previous delay
   for ( i = 0; i < ESCCMD_n; i++ )
     ESCCMD_state[i] &= ~(ESCCMD_STATE_ARMED);
@@ -309,6 +314,11 @@ int ESCCMD_3D_off( void )  {
 
   // Minimum delay before next command
   delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
+
+  // Flush incoming serial buffers due to a transcient voltage 
+  // appearing on Tx when saving generating a 0xff serial byte
+  for ( i = 0; i < ESCCMD_n; i++ )
+    ESCCMD_serial[i].clear( );
 
   // ESC is disarmed after previous delay
   for ( i = 0; i < ESCCMD_n; i++ )
