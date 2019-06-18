@@ -62,37 +62,39 @@ Hostcomm_struct_t   Host_comm =   {
 //  Initialize serial port
 //
 int Host_init_port( char *portname )  {
-  struct termios        newtio;
-fprintf( stderr, "test1\n" );
+  struct termios newtio;
+
   // Open device
-  //Host_fd = open( portname, O_RDWR | O_NOCTTY );
   Host_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
+
   if ( Host_fd < 0 )  {
     perror( portname );
     return -1;
   }
-fprintf( stderr, "test2\n" );
+
   /* Save current port settings */
   tcgetattr( Host_fd, &  Host_oldtio );
-fprintf( stderr, "test3\n" );
+
   /* Define new settings */
   bzero( &newtio, sizeof(newtio) );
   cfmakeraw( &newtio );
-  newtio.c_cflag = HOST_BAUDRATE | CS8 | CLOCAL | CREAD;
-  newtio.c_iflag = IGNPAR;
-  newtio.c_oflag = 0;
 
-  /* Set input mode (non-canonical, no echo,...) */
-  newtio.c_lflag = 0;
+  newtio.c_cflag =      HOST_BAUDRATE | CS8 | CLOCAL | CREAD;
+  newtio.c_iflag =      IGNPAR;
+  newtio.c_oflag =      0;
+  newtio.c_lflag =      0;
+  newtio.c_cc[VTIME] =  0;
+  newtio.c_cc[VMIN] =   0;
 
-  /* Inter-character timer  */
-  newtio.c_cc[VTIME] = HOST_READ_TIMEOUT;
-  newtio.c_cc[VMIN] = 0;
-fprintf( stderr, "test4\n" );
+  #if defined(__APPLE__)
+  cfsetispeed( &newtio, HOST_BAUDRATE );
+  cfsetospeed( &newtio, HOST_BAUDRATE );
+  #endif
+
   /* Apply the settings */
   tcflush( Host_fd, TCIFLUSH );
   tcsetattr( Host_fd, TCSANOW, &newtio );
-fprintf( stderr, "test5\n" );
+
   return 0;
 }
 
