@@ -1,7 +1,7 @@
 /*
  *  Communication with ESCPID code running on teensy 3.5
  *   JG, June 2019
- *   To compile : gcc -Wall -o host
+ *   To compile : gcc -Wall -o host host.c
  */
 
 #include <sys/types.h>
