@@ -16,7 +16,9 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/ioctl.h>
+#if defined(__linux__)
 #include <linux/serial.h>
+#endif
 #include "host.h"
 
 // Flags
@@ -29,8 +31,9 @@
 // Top, away from RJ45    : platform-3f980000.usb-usb-0:1.3:1.0
 // Top, next RJ45         : platform-3f980000.usb-usb-0:1.1.2:1.0
 //#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
-#define HOST_MODEMDEVICE    "/dev/ttyACM0"
-#define HOST_BAUDRATE       B4000000            // Serial baudrate
+//#define HOST_MODEMDEVICE    "/dev/ttyACM0"
+#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
+#define HOST_BAUDRATE       B115200             // Serial baudrate
 #define HOST_READ_TIMEOUT   5                   // Tenth of second
 #define HOST_NB_PING        100                 // Nb roundtrip communication
 
@@ -60,18 +63,18 @@ Hostcomm_struct_t   Host_comm =   {
 //
 int Host_init_port( char *portname )  {
   struct termios        newtio;
-  struct serial_struct  serial;
-
+fprintf( stderr, "test1\n" );
   // Open device
-  Host_fd = open( portname, O_RDWR | O_NOCTTY );
+  //Host_fd = open( portname, O_RDWR | O_NOCTTY );
+  Host_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
   if ( Host_fd < 0 )  {
     perror( portname );
     return -1;
   }
-
+fprintf( stderr, "test2\n" );
   /* Save current port settings */
   tcgetattr( Host_fd, &  Host_oldtio );
-
+fprintf( stderr, "test3\n" );
   /* Define new settings */
   bzero( &newtio, sizeof(newtio) );
   cfmakeraw( &newtio );
@@ -85,11 +88,11 @@ int Host_init_port( char *portname )  {
   /* Inter-character timer  */
   newtio.c_cc[VTIME] = HOST_READ_TIMEOUT;
   newtio.c_cc[VMIN] = 0;
-
+fprintf( stderr, "test4\n" );
   /* Apply the settings */
   tcflush( Host_fd, TCIFLUSH );
   tcsetattr( Host_fd, TCSANOW, &newtio );
-
+fprintf( stderr, "test5\n" );
   return 0;
 }
 
