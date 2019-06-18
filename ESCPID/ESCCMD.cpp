@@ -239,7 +239,7 @@ int ESCCMD_3D_on( void )  {
   delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
 
   // Flush incoming serial buffers due to a transcient voltage 
-  // appearing on Tx when saving generating a 0xff serial byte
+  // appearing on Tx when saving, generating a 0xff serial byte
   for ( i = 0; i < ESCCMD_n; i++ )
     ESCCMD_serial[i].clear( );
 
@@ -316,7 +316,7 @@ int ESCCMD_3D_off( void )  {
   delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
 
   // Flush incoming serial buffers due to a transcient voltage 
-  // appearing on Tx when saving generating a 0xff serial byte
+  // appearing on Tx when saving, generating a 0xff serial byte
   for ( i = 0; i < ESCCMD_n; i++ )
     ESCCMD_serial[i].clear( );
 
