@@ -96,10 +96,10 @@ int ESCPID_comm_update( void ) {
       for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
         
         // Gain conversion from int to float
-        ESCPID_Kp[i] =  Host_comm.PID_P[i];
-        ESCPID_Ki[i] =  Host_comm.PID_I[i];
-        ESCPID_Kd[i] =  Host_comm.PID_D[i];
-        ESCPID_f[i] =   Host_comm.PID_f[i];
+        ESCPID_Kp[i] =  ESCPID_PID_ADAPT_GAIN * Host_comm.PID_P[i];
+        ESCPID_Ki[i] =  ESCPID_PID_ADAPT_GAIN * Host_comm.PID_I[i];
+        ESCPID_Kd[i] =  ESCPID_PID_ADAPT_GAIN * Host_comm.PID_D[i];
+        ESCPID_f[i] =   ESCPID_PID_ADAPT_GAIN * Host_comm.PID_f[i];
         
         // Update PID tuning
         AWPID_tune(     i,
@@ -217,10 +217,10 @@ void setup() {
 
   // Initialize PID gains
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
-    ESCPID_Kp[i] =  ESCPID_PID_P;
-    ESCPID_Ki[i] =  ESCPID_PID_I;
-    ESCPID_Kd[i] =  ESCPID_PID_D;
-    ESCPID_f[i] =   ESCPID_PID_F;
+    ESCPID_Kp[i] =  ESCPID_PID_ADAPT_GAIN * ESCPID_PID_P;
+    ESCPID_Ki[i] =  ESCPID_PID_ADAPT_GAIN * ESCPID_PID_I;
+    ESCPID_Kd[i] =  ESCPID_PID_ADAPT_GAIN * ESCPID_PID_D;
+    ESCPID_f[i] =   ESCPID_PID_ADAPT_GAIN * ESCPID_PID_F;
     ESCPID_Min[i] = ESCPID_PID_MIN;
     ESCPID_Max[i] = ESCPID_PID_MAX;
   }
@@ -307,6 +307,7 @@ void loop( ) {
 
   // Check for next timer event
   ret = ESCCMD_tic( );
+
   if ( ret == ESCCMD_TIC_OCCURED )  {
 
     // Process timer event
