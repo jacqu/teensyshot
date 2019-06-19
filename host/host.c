@@ -16,8 +16,10 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/ioctl.h>
+#include <sys/param.h>
 #if defined(__linux__)
 #include <linux/serial.h>
+#include <linux/input.h>
 #endif
 #include "host.h"
 
@@ -31,9 +33,8 @@
 // Top, away from RJ45    : platform-3f980000.usb-usb-0:1.3:1.0
 // Top, next RJ45         : platform-3f980000.usb-usb-0:1.1.2:1.0
 //#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
-//#define HOST_MODEMDEVICE    "/dev/ttyACM0"
-#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
-#define HOST_DEVNAME_MAXSZ  256                 // Maximum size of a device name
+#define HOST_MODEMDEVICE    "/dev/ttyACM0"
+//#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
 #define HOST_BAUDRATE       B115200             // Serial baudrate
 #define HOST_READ_TIMEOUT   5                   // Tenth of second
 #define HOST_NB_PING        100                 // Nb roundtrip communication
@@ -64,7 +65,7 @@ Hostcomm_struct_t   Host_comm =   {
 //
 int Host_init_port( char *portname )  {
   struct  termios newtio;
-  char    devname[HOST_DEVNAME_MAXSZ];
+  char    devname[MAXPATHLEN];
 
   // Open device
   Host_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
@@ -74,8 +75,14 @@ int Host_init_port( char *portname )  {
     return -1;
   }
   else {
+    #if defined(__linux__)
     ioctl( Host_fd, EVIOCGNAME( sizeof( devname ) ), devname );
     printf( "Device %s successfully opened.", devname );
+    #endif
+    #if defined(__APPLE__)
+    if ( fcntl( Host_fd, F_GETPATH, devname ) != -1 )
+      printf( "Device %s successfully opened.", devname );
+    #endif
             
   }
 
