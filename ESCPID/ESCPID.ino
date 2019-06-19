@@ -326,17 +326,19 @@ void loop( ) {
         ESCPID_Measurement[i] = ESCPID_comm.rpm[i];
         
         // Update control signal
-        AWPID_control(  i, 
-                        ESCPID_Reference[i], 
-                        ESCPID_Measurement[i], 
-                        &ESCPID_Control[i] );
+        if ( ESCPID_Reference[i] >= 0 )
+          AWPID_control(  i, 
+                          ESCPID_Reference[i], 
+                          ESCPID_Measurement[i], 
+                          &ESCPID_Control[i] );
+        else  {
+          AWPID_control(  i, 
+                          -ESCPID_Reference[i], 
+                          -ESCPID_Measurement[i], 
+                          &ESCPID_Control[i] );
+          ESCPID_Control[i] *= -1.0;
+        }
       }
-    
-      // Define the sign of the throttle according to the reference sign
-      if ( ESCPID_Reference[i] >= 0 )
-        ESCPID_Control[i] = fabs( ESCPID_Control[i] );
-      else
-        ESCPID_Control[i] = -fabs( ESCPID_Control[i] );
       
       // Send control signal if reference has been sufficiently refreshed
       if ( ESCPID_comm_wd < ESCPID_COMM_WD_LEVEL ) {
