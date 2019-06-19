@@ -33,6 +33,7 @@
 //#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
 //#define HOST_MODEMDEVICE    "/dev/ttyACM0"
 #define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
+#define HOST_DEVNAME_MAXSZ  256                 // Maximum size of a device name
 #define HOST_BAUDRATE       B115200             // Serial baudrate
 #define HOST_READ_TIMEOUT   5                   // Tenth of second
 #define HOST_NB_PING        100                 // Nb roundtrip communication
@@ -62,7 +63,8 @@ Hostcomm_struct_t   Host_comm =   {
 //  Initialize serial port
 //
 int Host_init_port( char *portname )  {
-  struct termios newtio;
+  struct  termios newtio;
+  char    devname[HOST_DEVNAME_MAXSZ];
 
   // Open device
   Host_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
@@ -70,6 +72,11 @@ int Host_init_port( char *portname )  {
   if ( Host_fd < 0 )  {
     perror( portname );
     return -1;
+  }
+  else {
+    ioctl( fd, EVIOCGNAME( sizeof( devname ) ), devname );
+    printf( "Device %s successfully opened.", devname );
+            
   }
 
   /* Save current port settings */
