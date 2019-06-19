@@ -16,9 +16,15 @@
 #define HOST_ERROR_MAGIC      -6        // Bad magic number received
 
 // Prototypes
-int   Host_get_fd( char* );
-int   Host_init_port( char* );
-void  Host_release_port( char* );
-int   Host_comm_update( char*p, int16_t*, uint16_t*, uint16_t*, uint16_t*, uint16_t* );
+int   Host_get_fd(        char* );
+int   Host_init_port(     char* );
+void  Host_release_port(  char* );
+int   Host_comm_update(   char*, 
+                          int16_t*, 
+                          uint16_t*, 
+                          uint16_t*, 
+                          uint16_t*, 
+                          uint16_t*,
+                          ESCPIDcomm_struct_t** );
 
 #endif

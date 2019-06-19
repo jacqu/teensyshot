@@ -39,7 +39,10 @@
 #define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
 #define HOST_BAUDRATE       B115200                 // Serial baudrate
 #define HOST_READ_TIMEOUT   5                       // Tenth of second
-#define HOST_NB_PING        100                     // Nb roundtrip communication
+#define HOST_NB_PING        1000                    // Nb roundtrip communication
+#define HOST_STEP_REF       1000                    // Velocity reference step size (rpm)
+#define HOST_PERIOD         10000                   // Period of serial exchange (us)
+#define HOST_STEP_PERIOD    100                     // Duration of a step (intertions)
 
 // Globals
 int                 Host_fd[HOST_MAX_DEVICES] = 
@@ -168,12 +171,13 @@ void Host_release_port( char *portname )  {
 //
 // Manage communication with the teensy connected to portname
 //
-int Host_comm_update( char      *portname,
-                      int16_t   *RPM_r,
-                      uint16_t  *PID_P,
-                      uint16_t  *PID_I,
-                      uint16_t  *PID_D,
-                      uint16_t  *PID_f ) {
+int Host_comm_update( char                *portname,
+                      int16_t             *RPM_r,
+                      uint16_t            *PID_P,
+                      uint16_t            *PID_I,
+                      uint16_t            *PID_D,
+                      uint16_t            *PID_f,
+                      ESCPIDcomm_struct_t **comm ) {
                       
   int                 i, ret, res = 0, fd_idx;
   uint8_t             *pt_in;
@@ -256,7 +260,10 @@ int Host_comm_update( char      *portname,
     fprintf( stderr, "Invalid magic number.\n" );
     return HOST_ERROR_MAGIC;
   }
-
+  
+  // Return pointer to ESCPID_comm structure
+  *comm = &ESCPID_comm[fd_idx];
+  
   // Print rountrip duration
   #ifdef HOST_STANDALONE
   fprintf( stderr, "Delay: %llu us\n", elapsed_us );
@@ -271,16 +278,17 @@ int Host_comm_update( char      *portname,
 //
 int main( int argc, char *argv[] )  {
 
-  int       i, ret;
-  int16_t   RPM_r[ESCPID_MAX_ESC];
-  uint16_t  PID_P[ESCPID_MAX_ESC];
-  uint16_t  PID_I[ESCPID_MAX_ESC];
-  uint16_t  PID_D[ESCPID_MAX_ESC];
-  uint16_t  PID_f[ESCPID_MAX_ESC];
+  int                 i, k, ret;
+  int16_t             RPM_r[ESCPID_MAX_ESC];
+  uint16_t            PID_P[ESCPID_MAX_ESC];
+  uint16_t            PID_I[ESCPID_MAX_ESC];
+  uint16_t            PID_D[ESCPID_MAX_ESC];
+  uint16_t            PID_f[ESCPID_MAX_ESC];
+  ESCPIDcomm_struct_t *comm;
   
   // Initialize tunable PID data
   for ( i = 0; i < ESCPID_MAX_ESC; i++ )  {
-    RPM_r[i] = 0;
+    RPM_r[i] = HOST_STEP_REF / 100;
     PID_P[i] = ESCPID_PID_P;
     PID_I[i] = ESCPID_PID_I;
     PID_D[i] = ESCPID_PID_D;
@@ -294,16 +302,41 @@ int main( int argc, char *argv[] )  {
   }
 
   // Testing roundtrip serial link duration
-  for ( i = 0; i < HOST_NB_PING; i++ )
+  for ( i = 0; i < HOST_NB_PING; i++ )  {
+  
+    // Serial exchange with teensy
     if ( ( ret = Host_comm_update(  HOST_MODEMDEVICE,
                                     RPM_r,
                                     PID_P,
                                     PID_I,
                                     PID_D,
-                                    PID_f ) ) )  {
+                                    PID_f,
+                                    &comm ) ) )  {
       fprintf( stderr, "Error %d in Host_comm_update.\n", ret );
       break;
     }
+    
+    // Update reference
+    if ( !( i % HOST_STEP_PERIOD ) )
+      for ( k = 0; k < ESCPID_MAX_ESC; k++ )  {
+        RPM_r[k] *= -1;
+    
+    // Display telemetry
+    for ( k = 0; k < ESCPID_NB_ESC; k++ )
+      fprintf(  stderr,
+                "#:%d.%d\terr:%d\tdeg:%d\tcmd:%d\tvolt:%d\tamp:%d\trpm:%d\t\ ",
+                i,
+                k,
+                comm->err[k],
+                comm->deg[k],
+                comm->cmd[k],
+                comm->volt[k],
+                comm->amp[k],
+                comm->rpm[k] );
+              
+    // Wait loop period
+    usleep( HOST_PERIOD ):
+  }
 
   // Restoring serial port initial configuration
   Host_release_port( HOST_MODEMDEVICE );
