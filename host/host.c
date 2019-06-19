@@ -112,7 +112,7 @@ int Host_init_port( char *portname )  {
   
   // Look for an empty slot to store the fd
   for ( i = 0; i < HOST_MAX_DEVICES; i++ )
-    if ( Host_fd[i] != - 1 )
+    if ( Host_fd[i] == - 1 )
       break;
       
   // Close fd and throw an error if all slots are used
@@ -124,7 +124,7 @@ int Host_init_port( char *portname )  {
   Host_fd[i] = check_fd;
 
   /* Save current port settings */
-  tcgetattr( check_fd, &  Host_oldtio );
+  tcgetattr( check_fd, &Host_oldtio[i] );
 
   /* Define new settings */
   bzero( &newtio, sizeof(newtio) );
@@ -160,7 +160,7 @@ void Host_release_port( char *portname )  {
   
   if ( fd_idx != -1 ) {
     // Restore initial settings if needed
-    tcsetattr( Host_fd[fd_idx], TCSANOW, &  Host_oldtio );
+    tcsetattr( Host_fd[fd_idx], TCSANOW, &Host_oldtio[fd_idx] );
     close( Host_fd[fd_idx] );
     Host_fd[fd_idx] = -1;
   }
