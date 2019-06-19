@@ -26,7 +26,7 @@
 // Flags
 #define HOST_STANDALONE                             // main is added
 
-#define HOST_MAX_DEVICES    5                       // Max number of serial devices
+#define HOST_MAX_DEVICES    5                       // Max number of teensys
 
 // Defines
 // Note on USB port <-> devices relationship on RPI 3b+:
