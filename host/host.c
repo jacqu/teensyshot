@@ -66,6 +66,9 @@ Hostcomm_struct_t   Host_comm =   {
 int Host_init_port( char *portname )  {
   struct  termios newtio;
   char    devname[MAXPATHLEN];
+  #if defined(__linux__)
+  char    procname[MAXPATHLEN];
+  #endif
 
   // Open device
   Host_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
@@ -76,8 +79,10 @@ int Host_init_port( char *portname )  {
   }
   else {
     #if defined(__linux__)
-    ioctl( Host_fd, EVIOCGNAME( sizeof( devname ) ), devname );
-    printf( "Device %s successfully opened.", devname );
+    //ioctl( Host_fd, EVIOCGNAME( sizeof( devname ) ), devname );
+    snprintf( procname, MAXPATHLEN, "/proc/self/fd/%d", Host_fd );
+    if ( readlink( procname, devname, MAXPATHLEN ) != -1 )
+      printf( "Device %s successfully opened.", devname );
     #endif
     #if defined(__APPLE__)
     if ( fcntl( Host_fd, F_GETPATH, devname ) != -1 )
