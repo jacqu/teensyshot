@@ -19,6 +19,6 @@
 int   Host_get_fd( char* );
 int   Host_init_port( char* );
 void  Host_release_port( char* );
-int   Host_comm_update( char*p, int16_t*, uint16_t*, uint16_t*, uint16_t*, uint16_t* ):
+int   Host_comm_update( char*p, int16_t*, uint16_t*, uint16_t*, uint16_t*, uint16_t* );
 
 #endif

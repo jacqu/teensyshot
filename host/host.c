@@ -35,8 +35,8 @@
 // Top, away from RJ45    : platform-3f980000.usb-usb-0:1.3:1.0
 // Top, next RJ45         : platform-3f980000.usb-usb-0:1.1.2:1.0
 //#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
-#define HOST_MODEMDEVICE    "/dev/ttyACM0"
-//#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
+//#define HOST_MODEMDEVICE    "/dev/ttyACM0"
+#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
 #define HOST_BAUDRATE       B115200                 // Serial baudrate
 #define HOST_READ_TIMEOUT   5                       // Tenth of second
 #define HOST_NB_PING        100                     // Nb roundtrip communication
@@ -176,7 +176,7 @@ int Host_comm_update( char      *portname,
                       uint16_t  *PID_f ) {
                       
   int                 i, ret, res = 0, fd_idx;
-  uint8_t             *pt_in = (uint8_t*)(&ESCPID_comm);
+  uint8_t             *pt_in;
   struct timespec     start, cur;
   unsigned long long  elapsed_us;
   
@@ -197,7 +197,7 @@ int Host_comm_update( char      *portname,
   }
    
   // Send output structure
-  res = write( Host_fd[fd_idx], &Host_comm, sizeof( Host_comm ) );
+  res = write( Host_fd[fd_idx], &Host_comm[fd_idx], sizeof( Host_comm[fd_idx] ) );
   if ( res < 0 )  {
     perror( "write Host_comm" );
     return HOST_ERROR_WRITE_SER;
@@ -213,7 +213,8 @@ int Host_comm_update( char      *portname,
 
   // Reset byte counter and magic number
   res = 0;
-  ESCPID_comm.magic = 0;
+  ESCPID_comm[fd_idx].magic = 0;
+  pt_in = (uint8_t*)(&ESCPID_comm[fd_idx]);
 
   do  {
     ret = read( Host_fd[fd_idx], &pt_in[res], 1 );
@@ -236,10 +237,10 @@ int Host_comm_update( char      *portname,
     if ( elapsed_us / 100000 > HOST_READ_TIMEOUT )
       break;
 
-  } while ( res < sizeof( ESCPID_comm ) );
+  } while ( res < sizeof( ESCPID_comm[fd_idx] ) );
 
   // Check response size
-  if ( res != sizeof( ESCPID_comm ) )  {
+  if ( res != sizeof( ESCPID_comm[fd_idx] ) )  {
     fprintf( stderr, "Packet with bad size received.\n" );
 
     // Flush input buffer
@@ -251,7 +252,7 @@ int Host_comm_update( char      *portname,
   }
 
   // Check magic number
-  if ( ESCPID_comm.magic !=  ESCPID_COMM_MAGIC )  {
+  if ( ESCPID_comm[fd_idx].magic !=  ESCPID_COMM_MAGIC )  {
     fprintf( stderr, "Invalid magic number.\n" );
     return HOST_ERROR_MAGIC;
   }
@@ -300,7 +301,7 @@ int main( int argc, char *argv[] )  {
                                     PID_I,
                                     PID_D,
                                     PID_f ) ) )  {
-      fprintf( "Error %d in Host_comm_update.\n", ret );
+      fprintf( stderr, "Error %d in Host_comm_update.\n", ret );
       break;
     }
 
