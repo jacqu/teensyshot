@@ -4,8 +4,6 @@
  *   To compile : gcc -Wall -o host host.c
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <stdlib.h>
@@ -17,6 +15,8 @@
 #include <strings.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #if defined(__linux__)
 #include <linux/serial.h>
 #include <linux/input.h>
@@ -24,9 +24,9 @@
 #include "host.h"
 
 // Flags
-#define HOST_STANDALONE                         // main is added
+#define HOST_STANDALONE                             // main is added
 
-#define HOST_MAX_DEVICES    5                   // Max number of serial devices
+#define HOST_MAX_DEVICES    5                       // Max number of serial devices
 
 // Defines
 // Note on USB port <-> devices relationship on RPI 3b+:
@@ -37,32 +37,21 @@
 //#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
 #define HOST_MODEMDEVICE    "/dev/ttyACM0"
 //#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
-#define HOST_BAUDRATE       B115200             // Serial baudrate
-#define HOST_READ_TIMEOUT   5                   // Tenth of second
-#define HOST_NB_PING        100                 // Nb roundtrip communication
+#define HOST_BAUDRATE       B115200                 // Serial baudrate
+#define HOST_READ_TIMEOUT   5                       // Tenth of second
+#define HOST_NB_PING        100                     // Nb roundtrip communication
 
 // Globals
-int             Host_fd[HOST_MAX_DEVICES] = 
-                { -1, -1, -1, -1, -1 };         // Serial port file descriptor
-struct termios  Host_oldtio[HOST_MAX_DEVICES];  // Backup of initial tty configuration
+int                 Host_fd[HOST_MAX_DEVICES] = 
+                          { HOST_ERROR_FD, 
+                            HOST_ERROR_FD,
+                            HOST_ERROR_FD,
+                            HOST_ERROR_FD,
+                            HOST_ERROR_FD };        // Serial port file descriptor
+struct termios      Host_oldtio[HOST_MAX_DEVICES];  // Backup of initial tty configuration
 
-ESCPIDcomm_struct_t ESCPID_comm = {
-                                  ESCPID_COMM_MAGIC,
-                                  {},
-                                  {},
-                                  {},
-                                  {},
-                                  {}
-                                  };
-Hostcomm_struct_t   Host_comm =   {
-                                  ESCPID_COMM_MAGIC,
-                                  {},
-                                  {},
-                                  {},
-                                  {},
-                                  {}
-                                  };
-
+ESCPIDcomm_struct_t ESCPID_comm[HOST_MAX_DEVICES];
+Hostcomm_struct_t   Host_comm[HOST_MAX_DEVICES];
 
 //
 //  Get the file descriptor index of the device name
@@ -76,7 +65,7 @@ int Host_get_fd( char *portname ) {
   #endif
   
   for ( i = 0; i < HOST_MAX_DEVICES; i++ )  {
-    if ( Host_fd[i] != -1 ) {
+    if ( Host_fd[i] != HOST_ERROR_FD ) {
       #if defined(__linux__)
       snprintf( procname, MAXPATHLEN, "/proc/self/fd/%d", Host_fd[i] );
       if ( readlink( procname, devname, MAXPATHLEN ) != -1 )
@@ -91,7 +80,7 @@ int Host_get_fd( char *portname ) {
     }
   }
 
-  return -1;
+  return HOST_ERROR_FD;
 }
 
 //
@@ -100,31 +89,41 @@ int Host_get_fd( char *portname ) {
 int Host_init_port( char *portname )  {
   struct  termios newtio;
   int     check_fd;
-  int     i;
+  int     i, fd_idx;
 
   // Open device
   check_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
 
   if ( check_fd < 0 )  {
     perror( portname );
-    return -1;
+    return HOST_ERROR_DEV;
   }
   
   // Look for an empty slot to store the fd
-  for ( i = 0; i < HOST_MAX_DEVICES; i++ )
-    if ( Host_fd[i] == - 1 )
+  for ( fd_idx = 0; fd_idx < HOST_MAX_DEVICES; fd_idx++ )
+    if ( Host_fd[fd_idx] == HOST_ERROR_FD )
       break;
       
   // Close fd and throw an error if all slots are used
-  if ( i == HOST_MAX_DEVICES ) {
+  if ( fd_idx == HOST_MAX_DEVICES ) {
     close( check_fd );
-    return -2;
+    return HOST_ERROR_MAX_DEV;
   }
     
-  Host_fd[i] = check_fd;
+  Host_fd[fd_idx] = check_fd;
+  
+  // Initialize corresponding data structure
+  for ( i = 0; i < ESCPID_MAX_ESC; i++ )  {
+    Host_comm[fd_idx].magic =     ESCPID_COMM_MAGIC;
+    Host_comm[fd_idx].RPM_r[i] =  0;
+    Host_comm[fd_idx].PID_P[i] =  ESCPID_PID_P;
+    Host_comm[fd_idx].PID_I[i] =  ESCPID_PID_I;
+    Host_comm[fd_idx].PID_D[i] =  ESCPID_PID_D;
+    Host_comm[fd_idx].PID_f[i] =  ESCPID_PID_F;
+  }
 
   /* Save current port settings */
-  tcgetattr( check_fd, &Host_oldtio[i] );
+  tcgetattr( check_fd, &Host_oldtio[fd_idx] );
 
   /* Define new settings */
   bzero( &newtio, sizeof(newtio) );
@@ -158,101 +157,156 @@ void Host_release_port( char *portname )  {
   // Get fd index from name
   fd_idx = Host_get_fd( portname );
   
-  if ( fd_idx != -1 ) {
+  if ( fd_idx != HOST_ERROR_FD ) {
     // Restore initial settings if needed
     tcsetattr( Host_fd[fd_idx], TCSANOW, &Host_oldtio[fd_idx] );
     close( Host_fd[fd_idx] );
-    Host_fd[fd_idx] = -1;
+    Host_fd[fd_idx] = HOST_ERROR_FD;
   }
 }
 
+//
+// Manage communication with the teensy connected to portname
+//
+int Host_comm_update( char      *portname,
+                      int16_t   *RPM_r,
+                      uint16_t  *PID_P,
+                      uint16_t  *PID_I,
+                      uint16_t  *PID_D,
+                      uint16_t  *PID_f ) {
+                      
+  int                 i, ret, res = 0, fd_idx;
+  uint8_t             *pt_in = (uint8_t*)(&ESCPID_comm);
+  struct timespec     start, cur;
+  unsigned long long  elapsed_us;
+  
+  // Get fd index
+  fd_idx = Host_get_fd( portname );
+  
+  // Check if fd index is valid
+  if ( fd_idx == HOST_ERROR_FD )
+    return HOST_ERROR_FD;
+  
+  // Update output data structue
+  for ( i = 0; i < ESCPID_MAX_ESC; i++ )  {
+    Host_comm[fd_idx].RPM_r[i] = RPM_r[i];
+    Host_comm[fd_idx].PID_P[i] = PID_P[i];
+    Host_comm[fd_idx].PID_I[i] = PID_I[i];
+    Host_comm[fd_idx].PID_D[i] = PID_D[i];
+    Host_comm[fd_idx].PID_f[i] = PID_f[i];
+  }
+   
+  // Send output structure
+  res = write( Host_fd[fd_idx], &Host_comm, sizeof( Host_comm ) );
+  if ( res < 0 )  {
+    perror( "write Host_comm" );
+    return HOST_ERROR_WRITE_SER;
+  }
+  
+  // Flush output buffer
+  fsync( Host_fd[fd_idx] );
+
+  // Wait for response
+
+  // Get current time
+  clock_gettime( CLOCK_MONOTONIC, &start );
+
+  // Reset byte counter and magic number
+  res = 0;
+  ESCPID_comm.magic = 0;
+
+  do  {
+    ret = read( Host_fd[fd_idx], &pt_in[res], 1 );
+
+    // Data received
+    if ( ret > 0 )  {
+      res += ret;
+    }
+
+    // Read error
+    if ( ret < 0 )
+      break;
+
+    // Compute time elapsed
+    clock_gettime( CLOCK_MONOTONIC, &cur );
+    elapsed_us =  ( cur.tv_sec * 1e6 + cur.tv_nsec / 1e3 ) -
+                  ( start.tv_sec * 1e6 + start.tv_nsec / 1e3 );
+
+    // Timeout
+    if ( elapsed_us / 100000 > HOST_READ_TIMEOUT )
+      break;
+
+  } while ( res < sizeof( ESCPID_comm ) );
+
+  // Check response size
+  if ( res != sizeof( ESCPID_comm ) )  {
+    fprintf( stderr, "Packet with bad size received.\n" );
+
+    // Flush input buffer
+    while ( ( ret = read( Host_fd[fd_idx], pt_in, 1 ) ) )
+      if ( ret <= 0 )
+        break;
+        
+    return HOST_ERROR_BAD_PK_SZ;
+  }
+
+  // Check magic number
+  if ( ESCPID_comm.magic !=  ESCPID_COMM_MAGIC )  {
+    fprintf( stderr, "Invalid magic number.\n" );
+    return HOST_ERROR_MAGIC;
+  }
+
+  // Print rountrip duration
+  #ifdef HOST_STANDALONE
+  fprintf( stderr, "Delay: %llu us\n", elapsed_us );
+  #endif
+
+  return 0;
+}
+
+#ifdef HOST_STANDALONE
 //
 //  main
 //
 int main( int argc, char *argv[] )  {
 
-  int                 i, ret, res = 0, fd_idx;
-  uint8_t             *pt_in = (uint8_t*)(&ESCPID_comm);
-  struct timespec     start, cur;
-  unsigned long long  elapsed_us;
-
+  int       i, ret;
+  int16_t   RPM_r[ESCPID_MAX_ESC];
+  uint16_t  PID_P[ESCPID_MAX_ESC];
+  uint16_t  PID_I[ESCPID_MAX_ESC];
+  uint16_t  PID_D[ESCPID_MAX_ESC];
+  uint16_t  PID_f[ESCPID_MAX_ESC];
+  
+  // Initialize tunable PID data
+  for ( i = 0; i < ESCPID_MAX_ESC; i++ )  {
+    RPM_r[i] = 0;
+    PID_P[i] = ESCPID_PID_P;
+    PID_I[i] = ESCPID_PID_I;
+    PID_D[i] = ESCPID_PID_D;
+    PID_f[i] = ESCPID_PID_F;
+  }
+  
   // Initialize serial port
   if ( Host_init_port( HOST_MODEMDEVICE ) )  {
     fprintf( stderr, "Error initializing serial port.\n" );
     exit( -1 );
   }
 
-  // Get fd index
-  fd_idx = Host_get_fd( HOST_MODEMDEVICE );
-  
-  // Check if fd index is valid
-  if ( fd_idx < 0 ) {
-    fprintf( stderr, "Unable to get file descriptor index.\n" );
-    exit( -2 );
-  }
   // Testing roundtrip serial link duration
-  for ( i = 0; i < HOST_NB_PING; i++ )  {
-
-    // Send output structure
-    res = write( Host_fd[fd_idx], &Host_comm, sizeof( Host_comm ) );
-    if ( res < 0 )  {
-      perror( "write Host_comm" );
-      exit( -3 );
+  for ( i = 0; i < HOST_NB_PING; i++ )
+    if ( ( ret = Host_comm_update(  HOST_MODEMDEVICE,
+                                    RPM_r,
+                                    PID_P,
+                                    PID_I,
+                                    PID_D,
+                                    PID_f ) ) )  {
+      fprintf( "Error %d in Host_comm_update.\n", ret );
+      break;
     }
-    fsync( Host_fd[fd_idx] );
-
-    // Wait for response
-
-    // Get current time
-    clock_gettime( CLOCK_MONOTONIC, &start );
-
-    // Reset byte counter and magic number
-    res = 0;
-    ESCPID_comm.magic = 0;
-
-    do  {
-      ret = read( Host_fd[fd_idx], &pt_in[res], 1 );
-
-      // Data received
-      if ( ret > 0 )  {
-        res += ret;
-      }
-
-      // Read error
-      if ( ret < 0 )
-        break;
-
-      // Compute time elapsed
-      clock_gettime( CLOCK_MONOTONIC, &cur );
-      elapsed_us =  ( cur.tv_sec * 1e6 + cur.tv_nsec / 1e3 ) -
-                    ( start.tv_sec * 1e6 + start.tv_nsec / 1e3 );
-
-      // Timeout
-      if ( elapsed_us / 100000 > HOST_READ_TIMEOUT )
-        break;
-
-    } while ( res < sizeof( ESCPID_comm ) );
-
-    // Check response size
-    if ( res != sizeof( ESCPID_comm ) )  {
-      fprintf( stderr, "Packet with bad size received.\n" );
-
-      // Flush input buffer
-      while ( ( ret = read( Host_fd[fd_idx], pt_in, 1 ) ) )
-        if ( ret < 0 )
-          break;
-    }
-
-    // Check magic number
-    if ( ESCPID_comm.magic !=  ESCPID_COMM_MAGIC )
-      fprintf( stderr, "Invalid magic number.\n" );
-
-    // Print rountrip duration
-    fprintf( stderr, "Delay: %llu us\n", elapsed_us );
-  }
 
   // Restoring serial port initial configuration
   Host_release_port( HOST_MODEMDEVICE );
 
   return 0;
 }
+#endif
