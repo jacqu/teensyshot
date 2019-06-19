@@ -318,13 +318,13 @@ int main( int argc, char *argv[] )  {
     
     // Update reference
     if ( !( i % HOST_STEP_PERIOD ) )
-      for ( k = 0; k < ESCPID_MAX_ESC; k++ )  {
+      for ( k = 0; k < ESCPID_MAX_ESC; k++ )
         RPM_r[k] *= -1;
     
     // Display telemetry
     for ( k = 0; k < ESCPID_NB_ESC; k++ )
       fprintf(  stderr,
-                "#:%d.%d\terr:%d\tdeg:%d\tcmd:%d\tvolt:%d\tamp:%d\trpm:%d\t\ ",
+                "#:%d.%d\terr:%d\tdeg:%d\tcmd:%d\tvolt:%d\tamp:%d\trpm:%d\t\n",
                 i,
                 k,
                 comm->err[k],
@@ -335,7 +335,7 @@ int main( int argc, char *argv[] )  {
                 comm->rpm[k] );
               
     // Wait loop period
-    usleep( HOST_PERIOD ):
+    usleep( HOST_PERIOD );
   }
 
   // Restoring serial port initial configuration
