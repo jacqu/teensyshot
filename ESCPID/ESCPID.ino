@@ -4,7 +4,7 @@
  *  Note:     Best viewed using Arduino IDE with tab space = 2
  *
  *  Authors:  Arda Yiğit and Jacques Gangloff
- *  Date:     June 2019
+ *  Date:     May 2019
  */
 
 // Includes

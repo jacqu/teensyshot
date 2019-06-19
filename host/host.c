@@ -74,7 +74,7 @@ int Host_init_port( char *portname )  {
     return -1;
   }
   else {
-    ioctl( fd, EVIOCGNAME( sizeof( devname ) ), devname );
+    ioctl( Host_fd, EVIOCGNAME( sizeof( devname ) ), devname );
     printf( "Device %s successfully opened.", devname );
             
   }
