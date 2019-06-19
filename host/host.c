@@ -26,6 +26,8 @@
 // Flags
 #define HOST_STANDALONE                         // main is added
 
+#define HOST_MAX_DEVICES    5                   // Max number of serial devices
+
 // Defines
 // Note on USB port <-> devices relationship on RPI 3b+:
 // Bottom, away from RJ45 : platform-3f980000.usb-usb-0:1.2:1.0
@@ -40,8 +42,9 @@
 #define HOST_NB_PING        100                 // Nb roundtrip communication
 
 // Globals
-int                 Host_fd = -1;               // Serial port file descriptor
-struct termios      Host_oldtio;                // Backup of old configuration
+int             Host_fd[HOST_MAX_DEVICES] = 
+                { -1, -1, -1, -1, -1 };         // Serial port file descriptor
+struct termios  Host_oldtio[HOST_MAX_DEVICES];  // Backup of initial tty configuration
 
 ESCPIDcomm_struct_t ESCPID_comm = {
                                   ESCPID_COMM_MAGIC,
@@ -60,39 +63,68 @@ Hostcomm_struct_t   Host_comm =   {
                                   {}
                                   };
 
+
+//
+//  Get the file descriptor index of the device name
+//  Returns -1 if no matching fd is found
+//
+int Host_get_fd( char *portname ) {
+  int   i;
+  char  devname[MAXPATHLEN];
+  #if defined(__linux__)
+  char  procname[MAXPATHLEN];
+  #endif
+  
+  for ( i = 0; i < HOST_MAX_DEVICES; i++ )  {
+    if ( Host_fd[i] != -1 ) {
+      #if defined(__linux__)
+      snprintf( procname, MAXPATHLEN, "/proc/self/fd/%d", Host_fd[i] );
+      if ( readlink( procname, devname, MAXPATHLEN ) != -1 )
+        if ( !strcmp( devname, portname ) )
+          return i;
+      #endif
+      #if defined(__APPLE__)
+      if ( fcntl( Host_fd[i], F_GETPATH, devname ) != -1 )
+        if ( !strcmp( devname, portname ) )
+          return i;
+      #endif
+    }
+  }
+
+  return -1;
+}
+
 //
 //  Initialize serial port
 //
 int Host_init_port( char *portname )  {
   struct  termios newtio;
-  char    devname[MAXPATHLEN];
-  #if defined(__linux__)
-  char    procname[MAXPATHLEN];
-  #endif
+  int     check_fd;
+  int     i;
 
   // Open device
-  Host_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
+  check_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
 
-  if ( Host_fd < 0 )  {
+  if ( check_fd < 0 )  {
     perror( portname );
     return -1;
   }
-  else {
-    #if defined(__linux__)
-    //ioctl( Host_fd, EVIOCGNAME( sizeof( devname ) ), devname );
-    snprintf( procname, MAXPATHLEN, "/proc/self/fd/%d", Host_fd );
-    if ( readlink( procname, devname, MAXPATHLEN ) != -1 )
-      printf( "Device %s successfully opened.", devname );
-    #endif
-    #if defined(__APPLE__)
-    if ( fcntl( Host_fd, F_GETPATH, devname ) != -1 )
-      printf( "Device %s successfully opened.", devname );
-    #endif
-            
+  
+  // Look for an empty slot to store the fd
+  for ( i = 0; i < HOST_MAX_DEVICES; i++ )
+    if ( Host_fd[i] != - 1 )
+      break;
+      
+  // Close fd and throw an error if all slots are used
+  if ( i == HOST_MAX_DEVICES ) {
+    close( check_fd );
+    return -2;
   }
+    
+  Host_fd[i] = check_fd;
 
   /* Save current port settings */
-  tcgetattr( Host_fd, &  Host_oldtio );
+  tcgetattr( check_fd, &  Host_oldtio );
 
   /* Define new settings */
   bzero( &newtio, sizeof(newtio) );
@@ -111,8 +143,8 @@ int Host_init_port( char *portname )  {
   #endif
 
   /* Apply the settings */
-  tcflush( Host_fd, TCIFLUSH );
-  tcsetattr( Host_fd, TCSANOW, &newtio );
+  tcflush( check_fd, TCIFLUSH );
+  tcsetattr( check_fd, TCSANOW, &newtio );
 
   return 0;
 }
@@ -120,12 +152,18 @@ int Host_init_port( char *portname )  {
 //
 //  Release serial port
 //
-void Host_release_port( void )  {
-
-  /* Restore initial settings */
-  tcsetattr( Host_fd, TCSANOW, &  Host_oldtio );
-  close( Host_fd );
-  Host_fd = -1;
+void Host_release_port( char *portname )  {
+  int fd_idx;
+  
+  // Get fd index from name
+  fd_idx = Host_get_fd( portname );
+  
+  if ( fd_idx != -1 ) {
+    // Restore initial settings if needed
+    tcsetattr( Host_fd[fd_idx], TCSANOW, &  Host_oldtio );
+    close( Host_fd[fd_idx] );
+    Host_fd[fd_idx] = -1;
+  }
 }
 
 //
@@ -133,7 +171,7 @@ void Host_release_port( void )  {
 //
 int main( int argc, char *argv[] )  {
 
-  int                 i, ret, res = 0;
+  int                 i, ret, res = 0, fd_idx;
   uint8_t             *pt_in = (uint8_t*)(&ESCPID_comm);
   struct timespec     start, cur;
   unsigned long long  elapsed_us;
@@ -144,16 +182,24 @@ int main( int argc, char *argv[] )  {
     exit( -1 );
   }
 
+  // Get fd index
+  fd_idx = Host_get_fd( HOST_MODEMDEVICE );
+  
+  // Check if fd index is valid
+  if ( fd_idx < 0 ) {
+    fprintf( stderr, "Unable to get file descriptor index.\n" );
+    exit( -2 );
+  }
   // Testing roundtrip serial link duration
   for ( i = 0; i < HOST_NB_PING; i++ )  {
 
     // Send output structure
-    res = write(   Host_fd, &Host_comm, sizeof( Host_comm ) );
+    res = write( Host_fd[fd_idx], &Host_comm, sizeof( Host_comm ) );
     if ( res < 0 )  {
       perror( "write Host_comm" );
-      exit( -2 );
+      exit( -3 );
     }
-    fsync( Host_fd );
+    fsync( Host_fd[fd_idx] );
 
     // Wait for response
 
@@ -165,7 +211,7 @@ int main( int argc, char *argv[] )  {
     ESCPID_comm.magic = 0;
 
     do  {
-      ret = read( Host_fd, &pt_in[res], 1 );
+      ret = read( Host_fd[fd_idx], &pt_in[res], 1 );
 
       // Data received
       if ( ret > 0 )  {
@@ -192,7 +238,7 @@ int main( int argc, char *argv[] )  {
       fprintf( stderr, "Packet with bad size received.\n" );
 
       // Flush input buffer
-      while ( ( ret = read( Host_fd, pt_in, 1 ) ) )
+      while ( ( ret = read( Host_fd[fd_idx], pt_in, 1 ) ) )
         if ( ret < 0 )
           break;
     }
@@ -206,7 +252,7 @@ int main( int argc, char *argv[] )  {
   }
 
   // Restoring serial port initial configuration
-  Host_release_port( );
+  Host_release_port( HOST_MODEMDEVICE );
 
   return 0;
 }
