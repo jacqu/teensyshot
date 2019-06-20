@@ -40,7 +40,7 @@
 #define HOST_BAUDRATE       B115200                 // Serial baudrate
 #define HOST_READ_TIMEOUT   5                       // Tenth of second
 #define HOST_NB_PING        1000                    // Nb roundtrip communication
-#define HOST_STEP_REF       10000                   // Velocity reference step size (10 rpm motor)
+#define HOST_STEP_REF       100                     // Velocity reference step size (10 rpm motor)
 #define HOST_PERIOD         10000                   // Period of serial exchange (us)
 #define HOST_STEP_PERIOD    100                     // Duration of a step (intertions)
 

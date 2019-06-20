@@ -13,7 +13,7 @@
 #define ESCPID_USB_UART_SPEED     115200            // Baudrate of the teeensy USB serial link
 #define ESCPID_ERROR_MSG_LENGTH   80                // Max string length of an error message
 
-#define ESCPID_PID_P              400               // Default PID proportional gain
+#define ESCPID_PID_P              40                // Default PID proportional gain
 #define ESCPID_PID_I              1                 // Default PID integral gain
 #define ESCPID_PID_D              0                 // Default PID derivative gain
 #define ESCPID_PID_F              0                 // Default PID derivative filtering pole
