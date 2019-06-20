@@ -750,7 +750,7 @@ int ESCCMD_tic( void )  {
     if ( ESCCMD_tlm_pend[i] ) {
 
       // Check if a complete packet has arrived
-      if ( ESCCMD_serial[i].available( ) >= ESCCMD_TLM_LENGTH )  {
+      if ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH )  {
       
         // Update pending packet counter
         ESCCMD_tlm_pend[i]--;
