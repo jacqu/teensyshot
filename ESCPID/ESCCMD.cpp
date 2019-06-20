@@ -716,9 +716,9 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
       *rpm = ESCCMD_tlm_rpm[i];
     }
     
-    // Convert electrical rpm * 100 into motor rpm * 100
+    // Convert electrical rpm * 100 into motor rpm * 10
     
-    *rpm /= ( ESCCMD_TLM_NB_POLES / 2 );
+    *rpm *= 10 / ( ESCCMD_TLM_NB_POLES / 2 );
   }
   else
     return ESCCMD_ERROR_TLM_INVAL;

@@ -40,7 +40,7 @@
 #define HOST_BAUDRATE       B115200                 // Serial baudrate
 #define HOST_READ_TIMEOUT   5                       // Tenth of second
 #define HOST_NB_PING        1000                    // Nb roundtrip communication
-#define HOST_STEP_REF       1000                    // Velocity reference step size (rpm)
+#define HOST_STEP_REF       10000                   // Velocity reference step size (10 rpm motor)
 #define HOST_PERIOD         10000                   // Period of serial exchange (us)
 #define HOST_STEP_PERIOD    100                     // Duration of a step (intertions)
 
@@ -288,7 +288,7 @@ int main( int argc, char *argv[] )  {
   
   // Initialize tunable PID data
   for ( i = 0; i < ESCPID_MAX_ESC; i++ )  {
-    RPM_r[i] = HOST_STEP_REF / 100;
+    RPM_r[i] = HOST_STEP_REF;
     PID_P[i] = ESCPID_PID_P;
     PID_I[i] = ESCPID_PID_I;
     PID_D[i] = ESCPID_PID_D;
@@ -332,7 +332,7 @@ int main( int argc, char *argv[] )  {
                 comm->cmd[k],
                 comm->volt[k] * 10,
                 comm->amp[k] * 10,
-                comm->rpm[k] / 100 );
+                comm->rpm[k] / 10 );
               
     // Wait loop period
     usleep( HOST_PERIOD );

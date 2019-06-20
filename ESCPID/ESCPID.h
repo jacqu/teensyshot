@@ -35,14 +35,14 @@ typedef struct {
   uint16_t      cmd[ESCPID_MAX_ESC];          // Current ESC command value
   uint16_t      volt[ESCPID_MAX_ESC];         // Voltage of the ESC power supply (0.01V)
   uint16_t      amp[ESCPID_MAX_ESC];          // ESC current (0.01A)
-  int16_t       rpm[ESCPID_MAX_ESC];          // Motor rpm (100 rpm)
+  int16_t       rpm[ESCPID_MAX_ESC];          // Motor rpm (10 rpm)
 } ESCPIDcomm_struct_t;
 
 // Host->teensy communication data structure
 // sizeof(Host_comm)=64 to match USB 1.0 buffer size
 typedef struct {
   uint32_t      magic;                        // Magic number
-  int16_t       RPM_r[ESCPID_MAX_ESC];        // Velocity reference (100 rpm)
+  int16_t       RPM_r[ESCPID_MAX_ESC];        // Velocity reference (10 rpm)
   uint16_t      PID_P[ESCPID_MAX_ESC];        // PID proportional gain
   uint16_t      PID_I[ESCPID_MAX_ESC];        // PID integral gain
   uint16_t      PID_D[ESCPID_MAX_ESC];        // PID derivative gain
