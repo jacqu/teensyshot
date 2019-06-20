@@ -16,7 +16,17 @@ int16_t:
 - -1000 to 999: throttle
 - 1000+n: n is the command number
 ### Out-coming data
-Data structure containing telemetry mean voltage and error code. 
+Data structure containing telemetry mean voltage and error code.
+## Wiring
+Teensyshot can communicate with up to 6 ESCs. The wiring should respect the order.
+|   | DSHOT | TLM/RX |
+|:-:|:-----:|:------:|
+| 1 |   22  |    0   |
+| 2 |   23  |    9   |
+| 3 |   6   |    7   |
+| 4 |   20  |   31   |
+| 5 |   21  |   34   |
+| 6 |   5   |   47   |
 ## Authors
 - [Arda Yiğit](mailto:arda.yigit@unistra.fr): DMA programming and ESC communication
 - [Jacques Gangloff:](mailto:jacques.gangloff@unistra.fr) higher level API, debugging
