@@ -39,13 +39,13 @@ volatile uint8_t    ESCCMD_init_flag = 0;                   // Subsystem initial
 volatile uint8_t    ESCCMD_timer_flag = 0;                  // Periodic loop enable/disable flag
 
 IntervalTimer       ESCCMD_timer;                           // Timer object
-HardwareSerial      ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial objects
-                                                Serial1,
-                                                Serial2,
-                                                Serial3,
-                                                Serial4,
-                                                Serial5,
-                                                Serial6 };
+HardwareSerial*     ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial objects
+                                                &Serial1,
+                                                &Serial2,
+                                                &Serial3,
+                                                &Serial4,
+                                                &Serial5,
+                                                &Serial6 };
 //
 //  Initialization
 //
@@ -82,7 +82,7 @@ void ESCCMD_init( uint8_t n )  {
 
   // Initialize telemetry UART channels
   for ( i = 0; i < ESCCMD_n; i++ )
-    ESCCMD_serial[i].begin( ESCCMD_TLM_UART_SPEED );
+    ESCCMD_serial[i]->begin( ESCCMD_TLM_UART_SPEED );
 
   // Set the initialization flag
   ESCCMD_init_flag = 1;
@@ -238,10 +238,10 @@ int ESCCMD_3D_on( void )  {
   // Minimum delay before next command
   delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
 
-  // Flush incoming serial buffers due to a transcient voltage 
+  // Flush incoming serial buffers due to a transcient voltage
   // appearing on Tx when saving, generating a 0xff serial byte
   for ( i = 0; i < ESCCMD_n; i++ )
-    ESCCMD_serial[i].clear( );
+    ESCCMD_serial[i]->clear( );
 
   // ESC is disarmed after previous delay
   for ( i = 0; i < ESCCMD_n; i++ )
@@ -315,10 +315,10 @@ int ESCCMD_3D_off( void )  {
   // Minimum delay before next command
   delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
 
-  // Flush incoming serial buffers due to a transcient voltage 
+  // Flush incoming serial buffers due to a transcient voltage
   // appearing on Tx when saving, generating a 0xff serial byte
   for ( i = 0; i < ESCCMD_n; i++ )
-    ESCCMD_serial[i].clear( );
+    ESCCMD_serial[i]->clear( );
 
   // ESC is disarmed after previous delay
   for ( i = 0; i < ESCCMD_n; i++ )
@@ -411,7 +411,7 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-  
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
@@ -472,7 +472,7 @@ int ESCCMD_stop( uint8_t i ) {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-  
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
@@ -508,11 +508,11 @@ int ESCCMD_read_err( uint8_t i, int8_t *err )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-    
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
-  
+
 
   *err = ESCCMD_last_error[i];
 
@@ -527,11 +527,11 @@ int ESCCMD_read_cmd( uint8_t i, uint16_t *cmd )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-    
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
-  
+
 
   *cmd = ESCCMD_cmd[i];
 
@@ -548,7 +548,7 @@ int ESCCMD_read_deg( uint8_t i, uint8_t *deg )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-  
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
@@ -582,7 +582,7 @@ int ESCCMD_read_volt( uint8_t i, uint16_t *volt )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-  
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
@@ -616,7 +616,7 @@ int ESCCMD_read_amp( uint8_t i, uint16_t *amp )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-  
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
@@ -642,7 +642,7 @@ int ESCCMD_read_amp( uint8_t i, uint16_t *amp )  {
 
 //
 //  Read consumption of motor number i
-//  Unit is milli Ampere.hour 
+//  Unit is milli Ampere.hour
 //
 int ESCCMD_read_mah( uint8_t i, uint16_t *mah )  {
   static uint8_t local_state;
@@ -650,7 +650,7 @@ int ESCCMD_read_mah( uint8_t i, uint16_t *mah )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-  
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
@@ -685,7 +685,7 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
-  
+
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
@@ -757,7 +757,7 @@ int ESCCMD_tic( void )  {
 
         // Read packet
         for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
-          bufferTlm[j] = ESCCMD_serial[i].read( );
+          bufferTlm[j] = ESCCMD_serial[i]->read( );
 
         // If a packet has arrived, process it
         ESCCMD_tlm_deg[i]     =   bufferTlm[0];
@@ -784,7 +784,7 @@ int ESCCMD_tic( void )  {
           ESCCMD_tlm_pend[i] = 0;
 
           // Flush UART incoming buffer
-          ESCCMD_serial[i].clear( );
+          ESCCMD_serial[i]->clear( );
         }
         else {
           // Make some verifications on the telemetry
