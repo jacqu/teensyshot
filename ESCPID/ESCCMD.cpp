@@ -748,11 +748,12 @@ int ESCCMD_tic( void )  {
 
     // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
-      // Update pending packet counter
-        ESCCMD_tlm_pend[i]--;
 
       // Check if a complete packet has arrived
       if ( ESCCMD_serial[i].available( ) >= ESCCMD_TLM_LENGTH )  {
+      
+        // Update pending packet counter
+        ESCCMD_tlm_pend[i]--;
 
         // Read packet
         for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
