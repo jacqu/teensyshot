@@ -244,6 +244,7 @@ int Host_comm_update( char                *portname,
   } while ( res < sizeof( ESCPID_comm[fd_idx] ) );
 
   // Check response size
+  fprintf( stderr, "res=%d\n", res );
   if ( res != sizeof( ESCPID_comm[fd_idx] ) )  {
     fprintf( stderr, "Packet with bad size received.\n" );
 

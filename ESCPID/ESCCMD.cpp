@@ -728,6 +728,8 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
 
 //
 //  This routine should be called within the main loop
+//  Returns ESCCMD_TIC_OCCURED when a tic occurs, 
+//  Return 0 otherwise.
 //
 int ESCCMD_tic( void )  {
   static int      i, j, ret;
@@ -740,14 +742,12 @@ int ESCCMD_tic( void )  {
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_n; i++ )  {
 
-    // Check number of telemetry packet pendng
-    if ( ESCCMD_tlm_pend[i] > ESCCMD_TLM_MAX_PEND ) {
-      ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
-      ret = ESCCMD_ERROR_TLM_PEND;
-    }
-
     // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
+
+      // Check number of telemetry packet pendng
+      if ( ESCCMD_tlm_pend[i] > ESCCMD_TLM_MAX_PEND )
+        ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
 
       // Check if a complete packet has arrived
       if ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH )  {
@@ -773,8 +773,11 @@ int ESCCMD_tic( void )  {
 
           ESCCMD_CRC_errors[i]++;
 
-          ret = ESCCMD_ERROR_TLM_CRC;
           ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRC;
+
+          // Check for excessive CRC errors
+          if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR )
+            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRCMAX;
 
           // Wait for last out of sync bytes to come in
           for ( j = 0; j < ESCCMD_tlm_pend[i] + 1; j++ )
@@ -790,16 +793,8 @@ int ESCCMD_tic( void )  {
           // Make some verifications on the telemetry
 
           // Check for overtheating of the ESC
-          if ( ESCCMD_tlm_deg[i] >= ESCCMD_TLM_MAX_TEMP ) {
+          if ( ESCCMD_tlm_deg[i] >= ESCCMD_TLM_MAX_TEMP )
             ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_TEMP;
-            ret = ESCCMD_ERROR_TLM_TEMP;
-          }
-
-          // Check for excessive CRC errors
-          if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR ) {
-            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRCMAX;
-            ret = ESCCMD_ERROR_TLM_CRCMAX;
-          }
         }
       }
     }
@@ -817,18 +812,22 @@ int ESCCMD_tic( void )  {
     ESCCMD_tic_pend--;
     interrupts();
 
-    // If there is no error, inform caller that a tic occured
-    if ( !ret )
-      ret = ESCCMD_TIC_OCCURED;
+    // Informs caller that a tic occured
+    ret = ESCCMD_TIC_OCCURED;
 
     // Check if everything is initialized
-    if ( !ESCCMD_init_flag )
-      return ESCCMD_ERROR_INIT;
+    if ( !ESCCMD_init_flag )  {
+      for ( i = 0; i < ESCCMD_n; i++ ) 
+        ESCCMD_last_error[i] = ESCCMD_ERROR_INIT;
+      return ret;
+    }
 
     // Check if all ESC are armed
     for ( i = 0; i < ESCCMD_n; i++ )
-      if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )
-        ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
+      if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )  {
+        ESCCMD_last_error[i] = ESCCMD_ERROR_SEQ;
+        return ret;
+      }
 
     // Throttle watchdog
     for ( i = 0; i < ESCCMD_n; i++ )  {
@@ -849,14 +848,15 @@ int ESCCMD_tic( void )  {
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) ) {
       for ( i = 0; i < ESCCMD_n; i++ )
         ESCCMD_last_error[i] = ESCCMD_ERROR_DSHOT;
-      return ESCCMD_ERROR_DSHOT;
     }
-    delayMicroseconds( ESCCMD_CMD_DELAY );
-
-    // Update telemetry packet pending counter
-    for ( i = 0; i < ESCCMD_n; i++ )
-      if ( ESCCMD_tlm[i] )
-        ESCCMD_tlm_pend[i]++;
+    else  {
+      delayMicroseconds( ESCCMD_CMD_DELAY );
+  
+      // Update telemetry packet pending counter
+      for ( i = 0; i < ESCCMD_n; i++ )
+        if ( ESCCMD_tlm[i] )
+          ESCCMD_tlm_pend[i]++;
+    }
   }
 
   return ret;
