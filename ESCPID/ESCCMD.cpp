@@ -51,14 +51,16 @@ HardwareSerial*     ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
                                                 &Serial6 };
 #ifdef ESCCMD_ESC_EMULATION
 #define             ESCCMD_EMU_TLM_MAX      5               // Max number of telemetry packets
-#define             ESCCMD_EMU_TLM_DEG      25              // Nominal temperature
-#define             ESCCMD_EMU_TLM_VOLT     1200            // Nominal voltage
-#define             ESCCMD_EMU_TLM_AMP      2500            // Nominal current
-#define             ESCCMD_EMU_TLM_MAH      1000            // Nominal conssumption
-#define             ESCCMD_EMU_TLM_RPM      10000           // Nominal rpm
-#define             ESCCMD_EMU_TLM_NOISE    3               // Percentge of emulated noise
+#define             ESCCMD_EMU_TLM_DEG      25              // Nominal temperature (deg)
+#define             ESCCMD_EMU_TLM_VOLT     1200            // Nominal voltage (0.01V)
+#define             ESCCMD_EMU_TLM_AMP      2500            // Nominal current (0.01A)
+#define             ESCCMD_EMU_TLM_MAH      1000            // Nominal consumption (mAh)
+#define             ESCCMD_EMU_TLM_RPM      10              // Nominal electrical rpm (100rpm)
+#define             ESCCMD_EMU_TLM_NOISE    3.0             // Percentge of emulated noise (%)
+#define             ESCCMD_EMU_MOTOR_KV     2600            // Kv of the emulated motor
 
 uint8_t             ESCCMD_tlm_emu_nb =     0;              // Number of available packets
+
 uint8_t             ESCCMD_tlm_emu_deg[ESCCMD_EMU_TLM_MAX][ESCCMD_MAX_ESC];
 uint16_t            ESCCMD_tlm_emu_volt[ESCCMD_EMU_TLM_MAX][ESCCMD_MAX_ESC];
 uint16_t            ESCCMD_tlm_emu_amp[ESCCMD_EMU_TLM_MAX][ESCCMD_MAX_ESC];
@@ -814,9 +816,73 @@ int ESCCMD_tic( void )  {
 
     // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
-    
+
+      #ifdef ESCCMD_ESC_EMULATION
+      uint8_t *pt_c;
+      
+      // Check if a packet is available
+      if ( ESCCMD_tlm_emu_nb )  {
+        pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb][i];
+        bufferTlm[0] = pt_c[0];
+        pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb][i];
+        bufferTlm[1] = pt_c[0];
+        bufferTlm[2] = pt_c[1];
+        pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb][i];
+        bufferTlm[3] = pt_c[0];
+        bufferTlm[4] = pt_c[1];
+        pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb][i];
+        bufferTlm[5] = pt_c[0];
+        bufferTlm[6] = pt_c[1];
+        pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i];
+        bufferTlm[7] = pt_c[0];
+        bufferTlm[8] = pt_c[1];
+        bufferTlm[9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
+        packet_available = 1;
+        ESCCMD_tlm_emu_nb--;
+        ESCCMD_tlm_pend[i]--;
+      }
+      
+      // Process exceeding telemetry packet pending
+      if ( ESCCMD_tlm_pend[i] >= ESCCMD_TLM_MAX_PEND ) {
+      
+        // If remaining pending packet number exceeded, reset pending packets
+        for ( m = 0; ESCCMD_tlm_emu_nb; m++ ) {
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb][i];
+          bufferTlm[0] = pt_c[0];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb][i];
+          bufferTlm[1] = pt_c[0];
+          bufferTlm[2] = pt_c[1];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb][i];
+          bufferTlm[3] = pt_c[0];
+          bufferTlm[4] = pt_c[1];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb][i];
+          bufferTlm[5] = pt_c[0];
+          bufferTlm[6] = pt_c[1];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i];
+          bufferTlm[7] = pt_c[0];
+          bufferTlm[8] = pt_c[1];
+          bufferTlm[9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
+            
+          // Raise the packet_available flag
+          packet_available = 1;
+          ESCCMD_tlm_emu_nb--;
+        }
+        
+        // m smaller than ESCCMD_tlm_pend[i] means lost packets: log an error
+        // otherwise means excessive number of available packets: log an error
+        if ( m >= ESCCMD_tlm_pend[i] )
+          ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
+        else
+          ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
+          
+        // Update pending packet counter
+        ESCCMD_tlm_pend[i] = 0;
+      }
+      
+      #else
+      
       // Check if a complete packet has arrived
-      if (( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH ) )  {
+      if ( ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH ) )  {
   
           // Read packet
           for ( k = 0; k < ESCCMD_TLM_LENGTH; k++ )
@@ -833,20 +899,17 @@ int ESCCMD_tic( void )  {
       if ( ESCCMD_tlm_pend[i] >= ESCCMD_TLM_MAX_PEND ) {
       
         // If remaining pending packet number exceeded, reset pending packets
-        for ( m = 0; m < ESCCMD_tlm_pend[i]; m++ )
-          if ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH )  {
-            for ( k = 0; k < ESCCMD_TLM_LENGTH; k++ )
-              bufferTlm[k] = ESCCMD_serial[i]->read( );
-              
-            // Raise the packet_available flag
-            packet_available = 1;
-          }
-          else
-            break;
+        for ( m = 0; ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH ); m++ ) {
+          for ( k = 0; k < ESCCMD_TLM_LENGTH; k++ )
+            bufferTlm[k] = ESCCMD_serial[i]->read( );
+            
+          // Raise the packet_available flag
+          packet_available = 1;
+        }
         
         // m smaller than ESCCMD_tlm_pend[i] means lost packets: log an error
         // otherwise means excessive number of available packets: log an error
-        if ( m == ESCCMD_tlm_pend[i] )
+        if ( m >= ESCCMD_tlm_pend[i] )
           ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
         else
           ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
@@ -854,6 +917,7 @@ int ESCCMD_tic( void )  {
         // Update pending packet counter
         ESCCMD_tlm_pend[i] = 0;
       }
+      #endif
       
       // If a packet is availble, process it
       if ( packet_available ) {
@@ -954,6 +1018,51 @@ int ESCCMD_tic( void )  {
       for ( i = 0; i < ESCCMD_n; i++ )
         if ( ESCCMD_tlm[i] )
           ESCCMD_tlm_pend[i]++;
+
+      #ifdef ESCCMD_ESC_EMULATION
+      static uint8_t local_state;
+      // Bufferize emulated telemetry data
+      if ( ESCCMD_tlm_emu_nb < ESCCMD_EMU_TLM_MAX ) {
+        for ( i = 0; i < ESCCMD_n; i++ )  {
+          if ( ESCCMD_tlm[i] )  {
+            ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb][i] = (uint8_t)( ESCCMD_EMU_TLM_DEG * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100 ) * ( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) );
+            ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb][i] = (uint16_t)( ESCCMD_EMU_TLM_VOLT * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100 ) * ( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) );
+            ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb][i] = (uint16_t)( ESCCMD_EMU_TLM_AMP * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100 ) * ( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) );
+            ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb][i] = (uint16_t)( ESCCMD_EMU_TLM_MAH * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100 ) * ( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) );
+
+            // Define a local copy of the state
+            noInterrupts();
+            local_state = ESCCMD_state[i];
+            interrupts();
+
+            // Compute rpm according to throttle cmd
+            if ( local_state & ESCCMD_STATE_3D )  {
+            
+              // 3D mode
+              if ( ESCCMD_cmd[i] > DSHOT_CMD_MAX + 1 + ESCCMD_MAX_3D_THROTTLE ) {
+                // Negative direction
+                ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 2 + ESCCMD_MAX_3D_THROTTLE ) ) / ESCCMD_MAX_3D_THROTTLE
+                                                                      * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
+                                                                      / 100.0 ); 
+              }
+              else  {
+                // Positive direction
+                ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 1 ) ) / ESCCMD_MAX_3D_THROTTLE
+                                                                      * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
+                                                                      / 100.0 ); 
+              }
+            }
+            else  {
+              // Normal mode
+              ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 1 ) ) / ESCCMD_MAX_THROTTLE
+                                                                      * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
+                                                                      / 100.0 );
+            }
+          }
+        }
+        ESCCMD_tlm_emu_nb++;
+      }
+      #endif
     }
   }
 
