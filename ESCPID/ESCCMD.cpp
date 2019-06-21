@@ -732,34 +732,64 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
 //  Return 0 otherwise.
 //
 int ESCCMD_tic( void )  {
-  static int      i, j, ret;
+  static int      i, k, m, ret;
   static uint8_t  bufferTlm[ESCCMD_TLM_LENGTH];
   static uint16_t local_tic_pend;
+  static uint8_t  packet_available;
 
-  // Defaults to no error
+  // Defaults
   ret = 0;
+  packet_available = 0;
 
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_n; i++ )  {
 
     // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
-
-      // Check number of telemetry packet pendng
-      if ( ESCCMD_tlm_pend[i] > ESCCMD_TLM_MAX_PEND )
-        ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
-
+    
       // Check if a complete packet has arrived
-      if ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH )  {
+      if (( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH ) )  {
+  
+          // Read packet
+          for ( k = 0; k < ESCCMD_TLM_LENGTH; k++ )
+            bufferTlm[k] = ESCCMD_serial[i]->read( );
+            
+          // Raise packet_available flag
+          packet_available = 1;
+          
+          // Update pending packet counter
+          ESCCMD_tlm_pend[i]--;
+        }
+        
+      // Process exceeding telemetry packet pending
+      if ( ESCCMD_tlm_pend[i] == ESCCMD_TLM_MAX_PEND ) {
       
+        // If remaining pending packet number exceeded, reset pending packets
+        for ( m = 0; m < ESCCMD_tlm_pend[i]; m++ )
+          if ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH )  {
+            for ( k = 0; k < ESCCMD_TLM_LENGTH; k++ )
+              bufferTlm[k] = ESCCMD_serial[i]->read( );
+              
+            // Raise the packet_available flag
+            packet_available = 1;
+          }
+          else
+            break;
+        
+        // m smaller than ESCCMD_tlm_pend[i] means lost packets: log an error
+        // otherwise means excessive number of available packets: log an error
+        if ( m == ESCCMD_tlm_pend[i] )
+          ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
+        else
+          ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
+          
         // Update pending packet counter
-        ESCCMD_tlm_pend[i]--;
-
-        // Read packet
-        for ( j = 0; j < ESCCMD_TLM_LENGTH; j++ )
-          bufferTlm[j] = ESCCMD_serial[i]->read( );
-
-        // If a packet has arrived, process it
+        ESCCMD_tlm_pend[i] = 0;
+      }
+      
+      // If a packet is availble, process it
+      if ( packet_available ) {
+      
         ESCCMD_tlm_deg[i]     =   bufferTlm[0];
         ESCCMD_tlm_volt[i]    = ( bufferTlm[1] << 8 ) | bufferTlm[2];
         ESCCMD_tlm_amp[i]     = ( bufferTlm[3] << 8 ) | bufferTlm[4];

@@ -51,6 +51,7 @@
 #define ESCCMD_ERROR_TLM_PEND   -7                // Maximum number of pending telemetry packet reached
 #define ESCCMD_ERROR_TLM_TEMP   -8                // Maximum ESC temperature reached
 #define ESCCMD_ERROR_TLM_CRCMAX -9                // Maximum allowed CRC errors reached
+#define ESCCMD_ERROR_TLM_LOST   -10               // Lost packet(s) detected
 
 #define ESCCMD_TIC_OCCURED      1                 // A new timer tic has occured
 
