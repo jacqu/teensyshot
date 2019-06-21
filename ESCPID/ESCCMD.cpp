@@ -12,6 +12,9 @@
 #include "DSHOT.h"
 #include "ESCCMD.h"
 
+// Uncomment to activate ESC emulation
+#define ESCCMD_ESC_EMULATION
+
 // Error handling
 #define ESCCMD_ERROR( code )    { ESCCMD_last_error[i] = code; return code; }
 
@@ -46,6 +49,24 @@ HardwareSerial*     ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
                                                 &Serial4,
                                                 &Serial5,
                                                 &Serial6 };
+#ifdef ESCCMD_ESC_EMULATION
+#define             ESCCMD_EMU_TLM_MAX      5               // Max number of telemetry packets
+#define             ESCCMD_EMU_TLM_DEG      25              // Nominal temperature
+#define             ESCCMD_EMU_TLM_VOLT     1200            // Nominal voltage
+#define             ESCCMD_EMU_TLM_AMP      2500            // Nominal current
+#define             ESCCMD_EMU_TLM_MAH      1000            // Nominal conssumption
+#define             ESCCMD_EMU_TLM_RPM      10000           // Nominal rpm
+#define             ESCCMD_EMU_TLM_NOISE    3               // Percentge of emulated noise
+
+uint8_t             ESCCMD_tlm_emu_nb =     0;              // Number of available packets
+uint8_t             ESCCMD_tlm_emu_deg[ESCCMD_EMU_TLM_MAX][ESCCMD_MAX_ESC];
+uint16_t            ESCCMD_tlm_emu_volt[ESCCMD_EMU_TLM_MAX][ESCCMD_MAX_ESC];
+uint16_t            ESCCMD_tlm_emu_amp[ESCCMD_EMU_TLM_MAX][ESCCMD_MAX_ESC];
+uint16_t            ESCCMD_tlm_emu_mah[ESCCMD_EMU_TLM_MAX][ESCCMD_MAX_ESC];
+uint16_t            ESCCMD_tlm_emu_rpm[ESCCMD_EMU_TLM_MAX][ESCCMD_MAX_ESC];
+#endif
+
+
 //
 //  Initialization
 //
@@ -147,6 +168,10 @@ int ESCCMD_beep( uint8_t i, uint16_t tone )  {
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer is disabled
+  if ( ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_PARAM ) 
 
   // Check if tone value is within valid range
   if ( ( tone < DSHOT_CMD_BEACON1 ) || ( tone > DSHOT_CMD_BEACON5 ) )
@@ -184,6 +209,10 @@ int ESCCMD_3D_on( void )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
+  
+  // Check if timer is disabled
+  if ( ESCCMD_timer_flag )
+    return ESCCMD_ERROR_PARAM;
 
   for ( i = 0; i < ESCCMD_n; i++ )  {
     // Check if ESCs are stopped
@@ -261,6 +290,10 @@ int ESCCMD_3D_off( void )  {
   // Check if everything is initialized
   if ( !ESCCMD_init_flag )
     return ESCCMD_ERROR_INIT;
+  
+  // Check if timer is disabled
+  if ( ESCCMD_timer_flag )
+    return ESCCMD_ERROR_PARAM;
 
   for ( i = 0; i < ESCCMD_n; i++ )  {
     // Check if ESCs are stopped
@@ -357,7 +390,7 @@ int ESCCMD_start_timer( void )  {
   // Initialize ESC structure
   for ( i = 0; i < ESCCMD_n; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
-    ESCCMD_tlm[i] = 1;
+    ESCCMD_tlm[i] = 0;
     ESCCMD_tlm_pend[i] = 0;
     ESCCMD_throttle_wd[i] = ESCCMD_THWD_LEVEL;
   }
@@ -366,6 +399,9 @@ int ESCCMD_start_timer( void )  {
 
   // Initialize timer
   ESCCMD_timer.begin( ESCCMD_ISR_timer, ESCCMD_TIMER_PERIOD );
+  
+  // Raise the timer flag
+  ESCCMD_timer_flag = 1;
 
   return 0;
 }
@@ -415,6 +451,10 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ );
 
   // Define a local copy of the state
   noInterrupts();
@@ -476,6 +516,10 @@ int ESCCMD_stop( uint8_t i ) {
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ );
 
   // Define a local copy of the state
   noInterrupts();
@@ -552,6 +596,10 @@ int ESCCMD_read_deg( uint8_t i, uint8_t *deg )  {
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ );
 
   // Define a local copy of the state
   noInterrupts();
@@ -586,6 +634,10 @@ int ESCCMD_read_volt( uint8_t i, uint16_t *volt )  {
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ );
 
   // Define a local copy of the state
   noInterrupts();
@@ -620,6 +672,10 @@ int ESCCMD_read_amp( uint8_t i, uint16_t *amp )  {
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ );
 
   // Define a local copy of the state
   noInterrupts();
@@ -654,6 +710,10 @@ int ESCCMD_read_mah( uint8_t i, uint16_t *mah )  {
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ );
 
   // Define a local copy of the state
   noInterrupts();
@@ -689,6 +749,10 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
   // Check if motor is within range
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ );
 
   // Define a local copy of the state
   noInterrupts();
@@ -740,6 +804,10 @@ int ESCCMD_tic( void )  {
   // Defaults
   ret = 0;
   packet_available = 0;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    return 0;
 
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_n; i++ )  {
