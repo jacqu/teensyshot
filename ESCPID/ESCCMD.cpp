@@ -762,7 +762,7 @@ int ESCCMD_tic( void )  {
         }
         
       // Process exceeding telemetry packet pending
-      if ( ESCCMD_tlm_pend[i] == ESCCMD_TLM_MAX_PEND ) {
+      if ( ESCCMD_tlm_pend[i] >= ESCCMD_TLM_MAX_PEND ) {
       
         // If remaining pending packet number exceeded, reset pending packets
         for ( m = 0; m < ESCCMD_tlm_pend[i]; m++ )
