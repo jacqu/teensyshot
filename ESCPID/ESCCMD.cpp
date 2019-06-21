@@ -585,6 +585,41 @@ int ESCCMD_read_cmd( uint8_t i, uint16_t *cmd )  {
 }
 
 //
+//  Read telemetry status of ESC number i
+//
+int ESCCMD_read_tlm_status( uint8_t i )  {
+  static uint8_t local_state;
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+
+  // Check if motor is within range
+  if ( i >= ESCCMD_n )
+    return ESCCMD_ERROR_PARAM;
+  
+  // Check if timer started
+  if ( !ESCCMD_timer_flag )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ );
+
+  // Define a local copy of the state
+  noInterrupts();
+  local_state = ESCCMD_state[i];
+  interrupts();
+
+  // Check if ESC is armed
+  if ( !( local_state & ESCCMD_STATE_ARMED ) )
+    ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
+
+  // Check if telemetry is valid
+  if ( ESCCMD_tlm_valid[i] )  {
+    return 0;
+  }
+  else
+    return ESCCMD_ERROR_TLM_INVAL;
+}
+
+//
 //  Read temperature of motor number i
 //  Unit is degree Celsius
 //
@@ -783,8 +818,7 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
     }
     
     // Convert electrical rpm * 100 into motor rpm * 10
-    
-    *rpm *= 10 / ( ESCCMD_TLM_NB_POLES / 2 );
+    *rpm = ( *rpm * 10 * 2 ) / ESCCMD_TLM_NB_POLES;
   }
   else
     return ESCCMD_ERROR_TLM_INVAL;
@@ -1043,20 +1077,20 @@ int ESCCMD_tic( void )  {
                 // Negative direction
                 ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 2 + ESCCMD_MAX_3D_THROTTLE ) ) / ESCCMD_MAX_3D_THROTTLE
                                                                       * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
-                                                                      / 100.0 ); 
+                                                                      / 100.0 * ESCCMD_TLM_NB_POLES / 2 ); 
               }
               else  {
                 // Positive direction
                 ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 1 ) ) / ESCCMD_MAX_3D_THROTTLE
                                                                       * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
-                                                                      / 100.0 ); 
+                                                                      / 100.0  * ESCCMD_TLM_NB_POLES / 2 ); 
               }
             }
             else  {
               // Normal mode
               ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 1 ) ) / ESCCMD_MAX_THROTTLE
                                                                       * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
-                                                                      / 100.0 );
+                                                                      / 100.0  * ESCCMD_TLM_NB_POLES / 2 );
             }
           }
         }

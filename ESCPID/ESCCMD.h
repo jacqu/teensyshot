@@ -99,6 +99,7 @@ int     ESCCMD_throttle( uint8_t, int16_t );
 int     ESCCMD_stop( uint8_t );
 int     ESCCMD_read_err( uint8_t, int8_t* );
 int     ESCCMD_read_cmd( uint8_t, uint16_t* );
+int     ESCCMD_read_tlm_status( uint8_t );
 int     ESCCMD_read_deg( uint8_t, uint8_t* );
 int     ESCCMD_read_volt( uint8_t, uint16_t* );
 int     ESCCMD_read_amp( uint8_t, uint16_t* );

@@ -113,15 +113,14 @@ int ESCPID_comm_update( void ) {
       }
       
       // Update output data structure values
+      // If telemetry is invalid, data structure remains unmodified
       for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
         ESCCMD_read_err( i, &ESCPID_comm.err[i] );
         ESCCMD_read_cmd( i, &ESCPID_comm.cmd[i] );
         ESCCMD_read_deg( i, &ESCPID_comm.deg[i] );
         ESCCMD_read_volt( i, &ESCPID_comm.volt[i] );
         ESCCMD_read_amp( i, &ESCPID_comm.amp[i] );
-        // If telemetry invalid, force rpm = 0
-        if ( ESCCMD_read_rpm( i, &ESCPID_comm.rpm[i] ) < 0 )
-          ESCPID_comm.rpm[i] = 0;    
+        ESCCMD_read_rpm( i, &ESCPID_comm.rpm[i] );
       }
       
       // Send data structure to host
@@ -320,7 +319,7 @@ void loop( ) {
     
       // Compute control signal only if telemetry is valid
       // In case of invalid telemetry, last control signal is sent
-      if ( ESCPID_comm.rpm[i] ) {
+      if ( !ESCCMD_read_tlm_status( i ) ) {
       
         // Update measurement
         ESCPID_Measurement[i] = ESCPID_comm.rpm[i];

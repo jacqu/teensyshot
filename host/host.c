@@ -324,7 +324,7 @@ int main( int argc, char *argv[] )  {
     // Display telemetry
     for ( k = 0; k < ESCPID_NB_ESC; k++ )
       fprintf(  stderr,
-                "#:%d.%d\terr:%d\tdeg:%d\tcmd:%d\tmV:%d\tmA:%d\trpm:%d\t\n",
+                "#:%d.%d\terr:%d\tdeg:%d\tcmd:%d\tmV:%d\tmA:%d\trpm_r:%d\trpm:%d\n",
                 i,
                 k,
                 comm->err[k],
@@ -332,6 +332,7 @@ int main( int argc, char *argv[] )  {
                 comm->cmd[k],
                 comm->volt[k] * 10,
                 comm->amp[k] * 10,
+                RPM_r[k] * 10,
                 comm->rpm[k] * 10 );
               
     // Wait loop period
