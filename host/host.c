@@ -13,6 +13,7 @@
 #include <time.h>
 #include <string.h>
 #include <strings.h>
+#include <limits.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <sys/types.h>
@@ -35,8 +36,9 @@
 // Top, away from RJ45    : platform-3f980000.usb-usb-0:1.3:1.0
 // Top, next RJ45         : platform-3f980000.usb-usb-0:1.1.2:1.0
 //#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
+#define HOST_MODEMDEVICE    "/dev/serial/by-id/usb-Teensyduino_USB_Serial_4367700-if00"
 //#define HOST_MODEMDEVICE    "/dev/ttyACM0"
-#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
+//#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
 #define HOST_BAUDRATE       B115200                 // Serial baudrate
 #define HOST_READ_TIMEOUT   5                       // Tenth of second
 #define HOST_NB_PING        1000                    // Nb roundtrip communication
@@ -51,6 +53,14 @@ int                 Host_fd[HOST_MAX_DEVICES] =
                             HOST_ERROR_FD,
                             HOST_ERROR_FD,
                             HOST_ERROR_FD };        // Serial port file descriptor
+                            
+char                Host_devname[HOST_MAX_DEVICES][PATH_MAX] =
+                          { "",
+                            "",
+                            "",
+                            "",
+                            "" };                   // Serial port devname used to get fd with open
+                            
 struct termios      Host_oldtio[HOST_MAX_DEVICES];  // Backup of initial tty configuration
 
 ESCPIDcomm_struct_t ESCPID_comm[HOST_MAX_DEVICES];
@@ -62,26 +72,11 @@ Hostcomm_struct_t   Host_comm[HOST_MAX_DEVICES];
 //
 int Host_get_fd( char *portname ) {
   int   i;
-  char  devname[MAXPATHLEN];
-  #if defined(__linux__)
-  char  procname[MAXPATHLEN];
-  #endif
   
-  for ( i = 0; i < HOST_MAX_DEVICES; i++ )  {
-    if ( Host_fd[i] != HOST_ERROR_FD ) {
-      #if defined(__linux__)
-      snprintf( procname, MAXPATHLEN, "/proc/self/fd/%d", Host_fd[i] );
-      if ( readlink( procname, devname, MAXPATHLEN ) != -1 )
-        if ( !strcmp( devname, portname ) )
+  for ( i = 0; i < HOST_MAX_DEVICES; i++ )
+    if ( Host_fd[i] != HOST_ERROR_FD )
+        if ( !strcmp( Host_devname[i], portname ) )
           return i;
-      #endif
-      #if defined(__APPLE__)
-      if ( fcntl( Host_fd[i], F_GETPATH, devname ) != -1 )
-        if ( !strcmp( devname, portname ) )
-          return i;
-      #endif
-    }
-  }
 
   return HOST_ERROR_FD;
 }
@@ -112,8 +107,10 @@ int Host_init_port( char *portname )  {
     close( check_fd );
     return HOST_ERROR_MAX_DEV;
   }
-    
+  
+  // Store the fd and the corresponding devname
   Host_fd[fd_idx] = check_fd;
+  strncpy( Host_devname[fd_idx], portname, PATH_MAX );
   
   // Initialize corresponding data structure
   for ( i = 0; i < ESCPID_MAX_ESC; i++ )  {
@@ -164,7 +161,10 @@ void Host_release_port( char *portname )  {
     // Restore initial settings if needed
     tcsetattr( Host_fd[fd_idx], TCSANOW, &Host_oldtio[fd_idx] );
     close( Host_fd[fd_idx] );
+    
+    // Clear fd and corresponding devname
     Host_fd[fd_idx] = HOST_ERROR_FD;
+    strncpy( Host_devname[fd_idx], "", PATH_MAX );
   }
 }
 
