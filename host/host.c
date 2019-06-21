@@ -244,7 +244,6 @@ int Host_comm_update( char                *portname,
   } while ( res < sizeof( ESCPID_comm[fd_idx] ) );
 
   // Check response size
-  fprintf( stderr, "res=%d\n", res );
   if ( res != sizeof( ESCPID_comm[fd_idx] ) )  {
     fprintf( stderr, "Packet with bad size received.\n" );
 
@@ -333,7 +332,7 @@ int main( int argc, char *argv[] )  {
                 comm->cmd[k],
                 comm->volt[k] * 10,
                 comm->amp[k] * 10,
-                comm->rpm[k] / 10 );
+                comm->rpm[k] * 10 );
               
     // Wait loop period
     usleep( HOST_PERIOD );
