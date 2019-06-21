@@ -806,11 +806,11 @@ int ESCCMD_tic( void )  {
   // Defaults
   ret = 0;
   packet_available = 0;
-  
+ 
   // Check if timer started
   if ( !ESCCMD_timer_flag )
     return 0;
-
+ 
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_n; i++ )  {
 
@@ -822,45 +822,45 @@ int ESCCMD_tic( void )  {
       
       // Check if a packet is available
       if ( ESCCMD_tlm_emu_nb )  {
-        pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb][i];
+        pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb-1][i];
         bufferTlm[0] = pt_c[0];
-        pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb][i];
-        bufferTlm[1] = pt_c[0];
-        bufferTlm[2] = pt_c[1];
-        pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb][i];
-        bufferTlm[3] = pt_c[0];
-        bufferTlm[4] = pt_c[1];
-        pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb][i];
-        bufferTlm[5] = pt_c[0];
-        bufferTlm[6] = pt_c[1];
-        pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i];
-        bufferTlm[7] = pt_c[0];
-        bufferTlm[8] = pt_c[1];
+        pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb-1][i];
+        bufferTlm[1] = pt_c[1];
+        bufferTlm[2] = pt_c[0];
+        pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb-1][i];
+        bufferTlm[3] = pt_c[1];
+        bufferTlm[4] = pt_c[0];
+        pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb-1][i];
+        bufferTlm[5] = pt_c[1];
+        bufferTlm[6] = pt_c[0];
+        pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb-1][i];
+        bufferTlm[7] = pt_c[1];
+        bufferTlm[8] = pt_c[0];
         bufferTlm[9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
         packet_available = 1;
         ESCCMD_tlm_emu_nb--;
         ESCCMD_tlm_pend[i]--;
       }
-      
+
       // Process exceeding telemetry packet pending
       if ( ESCCMD_tlm_pend[i] >= ESCCMD_TLM_MAX_PEND ) {
       
         // If remaining pending packet number exceeded, reset pending packets
         for ( m = 0; ESCCMD_tlm_emu_nb; m++ ) {
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb][i];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb-1][i];
           bufferTlm[0] = pt_c[0];
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb][i];
-          bufferTlm[1] = pt_c[0];
-          bufferTlm[2] = pt_c[1];
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb][i];
-          bufferTlm[3] = pt_c[0];
-          bufferTlm[4] = pt_c[1];
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb][i];
-          bufferTlm[5] = pt_c[0];
-          bufferTlm[6] = pt_c[1];
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb][i];
-          bufferTlm[7] = pt_c[0];
-          bufferTlm[8] = pt_c[1];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb-1][i];
+          bufferTlm[1] = pt_c[1];
+          bufferTlm[2] = pt_c[0];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb-1][i];
+          bufferTlm[3] = pt_c[1];
+          bufferTlm[4] = pt_c[0];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb-1][i];
+          bufferTlm[5] = pt_c[1];
+          bufferTlm[6] = pt_c[0];
+          pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb-1][i];
+          bufferTlm[7] = pt_c[1];
+          bufferTlm[8] = pt_c[0];
           bufferTlm[9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
             
           // Raise the packet_available flag
@@ -1025,10 +1025,10 @@ int ESCCMD_tic( void )  {
       if ( ESCCMD_tlm_emu_nb < ESCCMD_EMU_TLM_MAX ) {
         for ( i = 0; i < ESCCMD_n; i++ )  {
           if ( ESCCMD_tlm[i] )  {
-            ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb][i] = (uint8_t)( ESCCMD_EMU_TLM_DEG * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100 ) * ( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) );
-            ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb][i] = (uint16_t)( ESCCMD_EMU_TLM_VOLT * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100 ) * ( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) );
-            ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb][i] = (uint16_t)( ESCCMD_EMU_TLM_AMP * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100 ) * ( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) );
-            ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb][i] = (uint16_t)( ESCCMD_EMU_TLM_MAH * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100 ) * ( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) );
+            ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb][i]  = (uint8_t)( ESCCMD_EMU_TLM_DEG *   ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
+            ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb][i] = (uint16_t)( ESCCMD_EMU_TLM_VOLT * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
+            ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb][i]  = (uint16_t)( ESCCMD_EMU_TLM_AMP *  ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
+            ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb][i]  = (uint16_t)( ESCCMD_EMU_TLM_MAH *  ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
 
             // Define a local copy of the state
             noInterrupts();
