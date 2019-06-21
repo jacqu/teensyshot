@@ -36,9 +36,9 @@
 // Top, away from RJ45    : platform-3f980000.usb-usb-0:1.3:1.0
 // Top, next RJ45         : platform-3f980000.usb-usb-0:1.1.2:1.0
 //#define HOST_MODEMDEVICE    "/dev/serial/by-path/platform-3f980000.usb-usb-0:1.2:1.0"
-#define HOST_MODEMDEVICE    "/dev/serial/by-id/usb-Teensyduino_USB_Serial_4367700-if00"
+//#define HOST_MODEMDEVICE    "/dev/serial/by-id/usb-Teensyduino_USB_Serial_4367700-if00"
 //#define HOST_MODEMDEVICE    "/dev/ttyACM0"
-//#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
+#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
 #define HOST_BAUDRATE       B115200                 // Serial baudrate
 #define HOST_READ_TIMEOUT   5                       // Tenth of second
 #define HOST_NB_PING        1000                    // Nb roundtrip communication

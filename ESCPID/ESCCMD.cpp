@@ -810,7 +810,7 @@ int ESCCMD_tic( void )  {
             ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRCMAX;
 
           // Wait for last out of sync bytes to come in
-          for ( j = 0; j < ESCCMD_tlm_pend[i] + 1; j++ )
+          for ( k = 0; k < ESCCMD_tlm_pend[i] + 1; k++ )
             delayMicroseconds( ESCCMD_TIMER_PERIOD );
 
           // Reset pending packet counter: all packets should be arrived
