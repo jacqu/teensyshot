@@ -12,8 +12,10 @@
 #include "DSHOT.h"
 #include "ESCCMD.h"
 
-// Uncomment to activate ESC emulation
-#define ESCCMD_ESC_EMULATION
+// ESC emulation
+#define ESCCMD_ESC_EMULATION                                // Uncomment to activate ESC emulation
+#define ESCCMD_ESC_EMU_PKT_LOSS                             // Uncomment to emulate packet loss
+#define ESCCMD_ESC_FRACTION_PKTLOSS       1000              // One out of x packets lost
 
 // Error handling
 #define ESCCMD_ERROR( code )    { ESCCMD_last_error[i] = code; return code; }
@@ -1094,7 +1096,14 @@ int ESCCMD_tic( void )  {
             }
           }
         }
+        
+        // Increment tlm counter according to packet loss
+        #ifdef ESCCMD_ESC_EMU_PKT_LOSS
+        if ( ( rand( ) * ESCCMD_ESC_FRACTION_PKTLOSS ) / RAND_MAX != ESCCMD_ESC_FRACTION_PKTLOSS )
+          ESCCMD_tlm_emu_nb++;
+        #else
         ESCCMD_tlm_emu_nb++;
+        #endif
       }
       #endif
     }
