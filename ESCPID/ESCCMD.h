@@ -36,6 +36,7 @@
 #define ESCCMD_TLM_NB_POLES     14                // Number of motor poles
 #define ESCCMD_TLM_MAX_TEMP     100               // Maximum ESC temperature (°C)
 #define ESCCMD_TLM_MAX_CRC_ERR  4                 // Maximum CRC errors allowed
+#define ESCCMD_TLM_MAX_PKT_LOSS 2                 // Maximum consecutive packet loss
 
 #define ESCCMD_MAX_THROTTLE     1999              // Max default throttle value
 #define ESCCMD_MAX_3D_THROTTLE  999               // Max 3D throttle value
