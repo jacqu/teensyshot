@@ -316,11 +316,6 @@ int main( int argc, char *argv[] )  {
       break;
     }
     
-    // Update reference
-    if ( !( i % HOST_STEP_PERIOD ) )
-      for ( k = 0; k < ESCPID_MAX_ESC; k++ )
-        RPM_r[k] *= -1;
-    
     // Display telemetry
     for ( k = 0; k < ESCPID_NB_ESC; k++ )
       fprintf(  stderr,
@@ -334,6 +329,11 @@ int main( int argc, char *argv[] )  {
                 comm->amp[k] * 10,
                 RPM_r[k] * 10,
                 comm->rpm[k] * 10 );
+    
+    // Update reference
+    if ( !( i % HOST_STEP_PERIOD ) )
+      for ( k = 0; k < ESCPID_MAX_ESC; k++ )
+        RPM_r[k] *= -1;
               
     // Wait loop period
     usleep( HOST_PERIOD );

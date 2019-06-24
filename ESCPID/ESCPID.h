@@ -13,13 +13,13 @@
 #define ESCPID_USB_UART_SPEED     115200            // Baudrate of the teeensy USB serial link
 #define ESCPID_ERROR_MSG_LENGTH   80                // Max string length of an error message
 
-#define ESCPID_PID_P              4                 // Default PID proportional gain
-#define ESCPID_PID_I              0                 // Default PID integral gain
-#define ESCPID_PID_D              0                 // Default PID derivative gain
-#define ESCPID_PID_F              0                 // Default PID derivative filtering pole
+#define ESCPID_PID_P              400               // Default PID proportional gain
+#define ESCPID_PID_I              1050              // Default PID integral gain
+#define ESCPID_PID_D              1000              // Default PID derivative gain
+#define ESCPID_PID_F              9900              // Default PID derivative filtering pole
 #define ESCPID_PID_MIN            1                 // Default PID min control input value
 #define ESCPID_PID_MAX            999               // Default PID max control input value
-#define ESCPID_PID_ADAPT_GAIN     0.01              // Range adaptation gain for PID coefficient
+#define ESCPID_PID_ADAPT_GAIN     0.0001            // Range adaptation gain for PID coefficient
 
 #define ESCPID_COMM_MAGIC         0x43305735        // Magic number: "teensy35" in leet speech
 #define ESCPID_COMM_WD_LEVEL      100               // Maximum number of periods without reference refresh
