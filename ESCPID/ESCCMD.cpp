@@ -15,7 +15,7 @@
 // ESC emulation
 #define ESCCMD_ESC_EMULATION                                // Uncomment to activate ESC emulation
 #define ESCCMD_ESC_EMU_PKT_LOSS                             // Uncomment to emulate packet loss
-#define ESCCMD_ESC_FRACTION_PKTLOSS       3000              // One out of x packets lost
+#define ESCCMD_ESC_FRACTION_PKTLOSS       300               // One out of x packets lost
 
 // Error handling
 #define ESCCMD_ERROR( code )              { ESCCMD_last_error[i] = code; return code; }
