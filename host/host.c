@@ -125,11 +125,10 @@ int Host_get_fd( uint32_t serial_nb ) {
   // Convert serial number into string
   snprintf( serial_nb_char, HOST_DEV_SERIALLG, "%d", serial_nb );
     
-  if ( portname )
-    for ( i = 0; i < HOST_MAX_DEVICES; i++ )
-      if ( Host_fd[i] != HOST_ERROR_FD )
-          if ( strstr( Host_devname[i], serial_nb_char ) )
-            return i;
+  for ( i = 0; i < HOST_MAX_DEVICES; i++ )
+    if ( Host_fd[i] != HOST_ERROR_FD )
+        if ( strstr( Host_devname[i], serial_nb_char ) )
+          return i;
 
   return HOST_ERROR_FD;
 }
@@ -355,7 +354,7 @@ int main( int argc, char *argv[] )  {
   }
   
   // Initialize serial port
-  if ( Host_init_port( HOST_MODEMDEVICE ) )  {
+  if ( Host_init_port( HOST_DEV_SERIALNB ) )  {
     fprintf( stderr, "Error initializing serial port.\n" );
     exit( -1 );
   }
@@ -364,7 +363,7 @@ int main( int argc, char *argv[] )  {
   for ( i = 0; i < HOST_NB_PING; i++ )  {
   
     // Serial exchange with teensy
-    if ( ( ret = Host_comm_update(  HOST_MODEMDEVICE,
+    if ( ( ret = Host_comm_update(  HOST_DEV_SERIALNB,
                                     RPM_r,
                                     PID_P,
                                     PID_I,
@@ -399,7 +398,7 @@ int main( int argc, char *argv[] )  {
   }
 
   // Restoring serial port initial configuration
-  Host_release_port( HOST_MODEMDEVICE );
+  Host_release_port( HOST_DEV_SERIALNB );
 
   return 0;
 }
