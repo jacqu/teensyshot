@@ -1113,15 +1113,15 @@ int ESCCMD_tic( void )  {
                                                                       / 100.0  * ESCCMD_TLM_NB_POLES / 2 );
             }
           }
-        }
-        
-        // Increment tlm counter according to packet loss statistics
-        #ifdef ESCCMD_ESC_EMU_PKT_LOSS
-        if ( (int)( ( (float)rand( ) / (float)RAND_MAX * (float)ESCCMD_ESC_FRACTION_PKTLOSS ) ) )
+          
+          // Increment tlm counter according to packet loss statistics
+          #ifdef ESCCMD_ESC_EMU_PKT_LOSS
+          if ( (int)( ( (float)rand( ) / (float)RAND_MAX * (float)ESCCMD_ESC_FRACTION_PKTLOSS ) ) )
+            ESCCMD_tlm_emu_nb[i]++;
+          #else
           ESCCMD_tlm_emu_nb[i]++;
-        #else
-        ESCCMD_tlm_emu_nb[i]++;
-        #endif
+          #endif
+        }
       }
       #endif
     }
