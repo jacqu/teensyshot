@@ -11,7 +11,6 @@
 #define ESCPID_MAX_ESC            6                 // Max number of ESCs
 
 #define ESCPID_USB_UART_SPEED     115200            // Baudrate of the teeensy USB serial link
-#define ESCPID_ERROR_MSG_LENGTH   80                // Max string length of an error message
 
 #define ESCPID_PID_P              400               // Default PID proportional gain
 #define ESCPID_PID_I              1050              // Default PID integral gain

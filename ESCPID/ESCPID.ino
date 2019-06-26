@@ -14,14 +14,10 @@
 #include "AWPID.h"
 #include "ESCPID.h"
 
-// Flags
-//#define ESCPID_DEBUG_MSG                        // Send debug messages to serial
-
 // Globals
 float     ESCPID_Reference[ESCPID_NB_ESC] = {};
 float     ESCPID_Measurement[ESCPID_NB_ESC] = {};
 float     ESCPID_Control[ESCPID_NB_ESC] = {};
-char      ESCPID_error_msg[ESCPID_ERROR_MSG_LENGTH];
 uint16_t  ESCPID_comm_wd = 0;
 
 float     ESCPID_Kp[ESCPID_NB_ESC];
@@ -135,78 +131,10 @@ int ESCPID_comm_update( void ) {
 }
 
 //
-//  Error processing
-//
-char *ESCPID_error( const char *prefix, int ret ) {
-
-  switch( ret ) {
-    case ESCCMD_ERROR_DSHOT:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "DSHOT error" );
-      break;
-    case ESCCMD_ERROR_SEQ:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "invalid function call sequence error" );
-      break;
-    case ESCCMD_ERROR_INIT:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "call of non initialized function" );
-      break;
-    case ESCCMD_ERROR_PARAM:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "invalid parameter error" );
-      break;
-    case ESCCMD_ERROR_TLM_CRC:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "CRC error" );
-      break;
-    case ESCCMD_ERROR_TLM_INVAL:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "invalid telemetry error" );
-      break;
-    case ESCCMD_ERROR_TLM_TEMP:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "ESC overheating error" );
-      break;
-    case ESCCMD_ERROR_TLM_CRCMAX:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "max allowed CRC error" );
-      break;
-
-    default:
-      snprintf( ESCPID_error_msg,
-                ESCPID_ERROR_MSG_LENGTH, "%s:%s",
-                prefix,
-                "unknown error" );
-  }
-
-  return ESCPID_error_msg;
-}
-
-//
 //  Arduino setup function
 //
 void setup() {
   int i;
-  #ifdef ESCPID_DEBUG_MSG
-  int ret;
-  #endif
 
   // Initialize USB serial link
   Serial.begin( ESCPID_USB_UART_SPEED );
@@ -237,65 +165,24 @@ void setup() {
   ESCCMD_init( ESCPID_NB_ESC );
 
   // Arming ESCs
-  #ifndef ESCPID_DEBUG_MSG
   ESCCMD_arm_all( );
-  #else
-  ret = ESCCMD_arm_all( );
-  // Process error
-  if ( ret )
-    Serial.println( ESCPID_error( "ESCCMD_arm_all", ret ) );
-  #endif
   
   // Switch 3D mode on
-  #ifndef ESCPID_DEBUG_MSG
   ESCCMD_3D_on( );
-  #else
-  ret = ESCCMD_3D_on( );
-  // Process error
-  if ( ret )
-    Serial.println( ESCPID_error( "ESCCMD_3D_on", ret ) );
-  #endif
 
   // Arming ESCs
-  #ifndef ESCPID_DEBUG_MSG
   ESCCMD_arm_all( );
-  #else
-  ret = ESCCMD_arm_all( );
-  // Process error
-  if ( ret )
-    Serial.println( ESCPID_error( "ESCCMD_arm_all", ret ) );
-  #endif
 
   // Start periodic loop
-  #ifndef ESCPID_DEBUG_MSG
   ESCCMD_start_timer( );
-  #else
-  ret = ESCCMD_start_timer( );
-  // Process error
-  if ( ret )
-    Serial.println( ESCPID_error( "ESCCMD_start_timer", ret ) );
-  #endif
   
   // Stop all motors
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
-    #ifndef ESCPID_DEBUG_MSG
     ESCCMD_stop( i );
-    #else
-    ret = ESCCMD_stop( i );
-    
-    // Process error
-    if ( ret )
-      Serial.println( ESCPID_error( "ESCCMD_throttle", ret ) );
-    #endif
   }
 
   // Reference watchdog is initially triggered
   ESCPID_comm_wd = ESCPID_COMM_WD_LEVEL;
-  
-  // Init finished
-  #ifdef ESCPID_DEBUG_MSG
-  Serial.println( "ESCPID setup complete" );
-  #endif
 }
 
 //
@@ -344,18 +231,6 @@ void loop( ) {
         ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
         ESCPID_comm_wd++;
       }
-        
-      // Process error
-      #ifdef ESCPID_DEBUG_MSG
-      if ( ret )
-        Serial.println( ESCPID_error( "ESCCMD_throttle", ret ) );
-      #endif
     }
   }
-  #ifdef ESCPID_DEBUG_MSG
-  else if ( ret ) {
-    // Process error
-    Serial.println( ESCPID_error( "ESCCMD_tic", ret ) );
-  }
-  #endif
 }
