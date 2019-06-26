@@ -14,6 +14,7 @@
 #include <string.h>
 #include <strings.h>
 #include <limits.h>
+#include <dirent.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <sys/types.h>
@@ -39,7 +40,18 @@
 //#define HOST_MODEMDEVICE    "/dev/serial/by-id/usb-Teensyduino_USB_Serial_4367700-if00"
 //#define HOST_MODEMDEVICE    "/dev/ttyACM0"
 //#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
-#define HOST_MODEMDEVICE      "/dev/tty.usbmodem54887501"
+//#define HOST_MODEMDEVICE      "/dev/tty.usbmodem54887501"
+#define HOST_DEV_SERIALNB     43677001              // Serial number of the teensy
+//#define HOST_DEV_SERIALNB      54887501
+#define HOST_DEV_SERIALLG     10                    // Max length of a serial number
+
+#if defined(__linux__)
+#define HOST_SERIAL_DEV_DIR   "/dev/serial/by-id/"
+#elif defined(__APPLE__)
+#define HOST_SERIAL_DEV_DIR   "/dev/"
+#else
+#define HOST_SERIAL_DEV_DIR   "/dev/"
+#endif
 
 #define HOST_BAUDRATE       B115200                 // Serial baudrate
 #define HOST_READ_TIMEOUT   5                       // Tenth of second
@@ -69,16 +81,55 @@ ESCPIDcomm_struct_t ESCPID_comm[HOST_MAX_DEVICES];
 Hostcomm_struct_t   Host_comm[HOST_MAX_DEVICES];
 
 //
-//  Get the file descriptor index of the device name
-//  Returns -1 if no matching fd is found
+//  Get the device name from the device serial number
 //
-int Host_get_fd( char *portname ) {
-  int   i;
+char *Host_name_from_serial( uint32_t serial_nb ) {
+  DIR           *d;
+  struct dirent *dir;
+  char          serial_nb_char[HOST_DEV_SERIALLG];
+  static char   portname[PATH_MAX];
   
-  for ( i = 0; i < HOST_MAX_DEVICES; i++ )
-    if ( Host_fd[i] != HOST_ERROR_FD )
-        if ( !strcmp( Host_devname[i], portname ) )
-          return i;
+  // Convert serial number into string
+  snprintf( serial_nb_char, HOST_DEV_SERIALLG, "%d", serial_nb );
+  
+  // Open directory where serial devices can be found
+  d = opendir( HOST_SERIAL_DEV_DIR );
+  
+  // Look for a device name contining teensy serial number
+  if ( d ) {
+  
+    // Scan each file in the directory
+    while ( ( dir = readdir( d ) ) != NULL ) {
+      if ( strstr( dir->d_name, serial_nb_char ) )  {
+      
+        // A match is a device name containing the serial number
+        snprintf( portname, PATH_MAX, "%s%s", HOST_SERIAL_DEV_DIR, dir->d_name );
+        return portname;
+      }
+    }
+    closedir( d );
+  }
+  
+  return NULL;
+}
+
+//
+//  Get the file descriptor index which device name contains
+//  specified serial number. 
+//  Returns -1 if no matching fd is found.
+//
+int Host_get_fd( uint32_t serial_nb ) {
+  int   i;
+  char  serial_nb_char[HOST_DEV_SERIALLG];
+  
+  // Convert serial number into string
+  snprintf( serial_nb_char, HOST_DEV_SERIALLG, "%d", serial_nb );
+    
+  if ( portname )
+    for ( i = 0; i < HOST_MAX_DEVICES; i++ )
+      if ( Host_fd[i] != HOST_ERROR_FD )
+          if ( strstr( Host_devname[i], serial_nb_char ) )
+            return i;
 
   return HOST_ERROR_FD;
 }
@@ -86,14 +137,20 @@ int Host_get_fd( char *portname ) {
 //
 //  Initialize serial port
 //
-int Host_init_port( char *portname )  {
+int Host_init_port( uint32_t serial_nb )  {
   struct  termios newtio;
   int     check_fd;
   int     i, fd_idx;
+  char    *portname;
+  
+  // Check if device plugged in
+  portname = Host_name_from_serial( serial_nb );
+  if ( !portname )
+    return HOST_ERROR_DEV;
 
   // Open device
   check_fd = open( portname, O_RDWR | O_NOCTTY | O_NONBLOCK );
-
+  
   if ( check_fd < 0 )  {
     perror( portname );
     return HOST_ERROR_DEV;
@@ -153,11 +210,11 @@ int Host_init_port( char *portname )  {
 //
 //  Release serial port
 //
-void Host_release_port( char *portname )  {
-  int fd_idx;
-  
-  // Get fd index from name
-  fd_idx = Host_get_fd( portname );
+void Host_release_port( uint32_t serial_nb )  {
+  int   fd_idx;
+    
+  // Get fd index from serial number
+  fd_idx = Host_get_fd( serial_nb );
   
   if ( fd_idx != HOST_ERROR_FD ) {
     // Restore initial settings if needed
@@ -173,7 +230,7 @@ void Host_release_port( char *portname )  {
 //
 // Manage communication with the teensy connected to portname
 //
-int Host_comm_update( char                *portname,
+int Host_comm_update( uint32_t            serial_nb,
                       int16_t             *RPM_r,
                       uint16_t            *PID_P,
                       uint16_t            *PID_I,
@@ -187,7 +244,7 @@ int Host_comm_update( char                *portname,
   unsigned long long  elapsed_us;
   
   // Get fd index
-  fd_idx = Host_get_fd( portname );
+  fd_idx = Host_get_fd( serial_nb );
   
   // Check if fd index is valid
   if ( fd_idx == HOST_ERROR_FD )
