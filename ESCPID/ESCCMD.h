@@ -42,7 +42,7 @@
 #define ESCCMD_MAX_3D_THROTTLE  999               // Max 3D throttle value
 #define ESCCMD_MIN_3D_THROTTLE  -999              // Min 3D throttle value
 
-#define ESCCMD_BEEP_DURATION    5000              // Duration of a beep (ms)
+#define ESCCMD_BEEP_DURATION    50                // Duration of a beep (ms)
 #define ESCCMD_ERROR_DSHOT      -1                // DSHOT error
 #define ESCCMD_ERROR_SEQ        -2                // Invalid function call sequence error
 #define ESCCMD_ERROR_INIT       -3                // Call of non initialized function

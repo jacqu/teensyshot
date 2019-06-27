@@ -13,7 +13,7 @@
 #include "ESCCMD.h"
 
 // ESC emulation
-#define ESCCMD_ESC_EMULATION                                // Uncomment to activate ESC emulation
+//#define ESCCMD_ESC_EMULATION                                // Uncomment to activate ESC emulation
 #define ESCCMD_ESC_EMU_PKT_LOSS                             // Uncomment to emulate packet loss
 #define ESCCMD_ESC_FRACTION_PKTLOSS       300               // One out of x packets lost
 
@@ -908,9 +908,12 @@ int ESCCMD_tic( void )  {
         }
         
         // m smaller than ESCCMD_tlm_pend[i] means lost packets: log an error
+        // m equal to ESCCMD_tlm_pend[i] means that some packets where just delayed : no error
         // otherwise means excessive number of available packets: log an error
-        if ( m >= ESCCMD_tlm_pend[i] )
-          ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
+        if ( m >= ESCCMD_tlm_pend[i] )  {
+          if ( m > ESCCMD_tlm_pend[i] )
+            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
+        }
         else  {
           if ( ESCCMD_tlm_lost_cnt[i] >= ESCCMD_TLM_MAX_PKT_LOSS )
             ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
@@ -953,16 +956,19 @@ int ESCCMD_tic( void )  {
         }
         
         // m smaller than ESCCMD_tlm_pend[i] means lost packets: log an error
+        // m equal to ESCCMD_tlm_pend[i] means that some packets where just delayed : no error
         // otherwise means excessive number of available packets: log an error
-        if ( m >= ESCCMD_tlm_pend[i] )
-          ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
+        if ( m >= ESCCMD_tlm_pend[i] )  {
+          if ( m > ESCCMD_tlm_pend[i] )
+            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
+        }
         else  {
           if ( ESCCMD_tlm_lost_cnt[i] >= ESCCMD_TLM_MAX_PKT_LOSS )
             ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
           else
             ESCCMD_tlm_lost_cnt[i]++;
         }
-          
+        
         // Update pending packet counter
         ESCCMD_tlm_pend[i] = 0;
       }

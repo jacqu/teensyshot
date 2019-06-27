@@ -139,9 +139,6 @@ void setup() {
   // Initialize USB serial link
   Serial.begin( ESCPID_USB_UART_SPEED );
 
-  // Wait for serial link to initialize
-  while ( !Serial );
-
   // Initialize PID gains
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
     ESCPID_Kp[i] =  ESCPID_PID_ADAPT_GAIN * ESCPID_PID_P;
@@ -172,6 +169,10 @@ void setup() {
 
   // Arming ESCs
   ESCCMD_arm_all( );
+
+  // Emit a beep
+  for ( i = 0; i < ESCPID_NB_ESC; i++ )
+    ESCCMD_beep( i, DSHOT_CMD_BEACON1 );
 
   // Start periodic loop
   ESCCMD_start_timer( );
