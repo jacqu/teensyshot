@@ -844,7 +844,6 @@ int ESCCMD_tic( void )  {
 
   // Defaults
   ret = 0;
-  packet_available = 0;
  
   // Check if timer started
   if ( !ESCCMD_timer_flag )
@@ -852,7 +851,10 @@ int ESCCMD_tic( void )  {
  
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_n; i++ )  {
-
+     
+     // Reset packet flag
+     packet_available = 0;
+     
     // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
 
