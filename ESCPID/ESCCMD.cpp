@@ -52,7 +52,7 @@ HardwareSerial*     ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
                                                 &Serial4,
                                                 &Serial5,
                                                 &Serial6 };
-uint8_t             bufferTlm[ESCCMD_TLM_LENGTH];
+uint8_t             bufferTlm[ESCCMD_NB_UART][ESCCMD_TLM_LENGTH];
 
 #ifdef ESCCMD_ESC_EMULATION
 #define             ESCCMD_EMU_TLM_MAX      5               // Max number of telemetry packets
@@ -838,7 +838,7 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
 //
 uint8_t *ESCCMD_read_packet( uint8_t i )  {
   #ifndef ESCCMD_ESC_EMULATION
-  static int      buffer_idx = 0;
+  static int      buffer_idx[ESCCMD_NB_UART] = { 0 };
   static int      serial_ret;
   #endif
   
@@ -848,46 +848,46 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
   // Check if a packet is available
   if ( ESCCMD_tlm_emu_nb[i] )  {
     pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[0] = pt_c[0];
+    bufferTlm[i][0] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[1] = pt_c[1];
-    bufferTlm[2] = pt_c[0];
+    bufferTlm[i][1] = pt_c[1];
+    bufferTlm[i][2] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[3] = pt_c[1];
+    bufferTlm[i][3] = pt_c[1];
     bufferTlm[4] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[5] = pt_c[1];
-    bufferTlm[6] = pt_c[0];
+    bufferTlm[i][5] = pt_c[1];
+    bufferTlm[i][6] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[7] = pt_c[1];
-    bufferTlm[8] = pt_c[0];
-    bufferTlm[9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
+    bufferTlm[i][7] = pt_c[1];
+    bufferTlm[i][8] = pt_c[0];
+    bufferTlm[i][9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
     
     ESCCMD_tlm_emu_nb[i]--;
     
-    return bufferTlm;
+    return bufferTlm[i];
   }
   #else
   // Read all bytes in rx buffer up to packet length
   while ( ( ESCCMD_serial[i]->available( ) ) && 
-          ( buffer_idx < ESCCMD_TLM_LENGTH ) ) {
+          ( buffer_idx[i] < ESCCMD_TLM_LENGTH ) ) {
           
     serial_ret = ESCCMD_serial[i]->read( );
       
     if ( serial_ret >= 0 )  {
-      bufferTlm[buffer_idx] = (uint8_t)serial_ret;
-      buffer_idx++;
+      bufferTlm[i][buffer_idx[i]] = (uint8_t)serial_ret;
+      buffer_idx[i]++;
     }
   }
   
   // Check if a complete packet has arrived
-  if ( ( ESCCMD_serial[i]->available( ) == ESCCMD_TLM_LENGTH ) )  {
+  if ( buffer_idx[i] == ESCCMD_TLM_LENGTH  )  {
     
     // Reset byte index in packet buffer
-    buffer_idx = 0;
+    buffer_idx[i] = 0;
     
     // Return pointer to buffer
-    return bufferTlm;
+    return bufferTlm[i];
   }
   #endif
 
