@@ -854,14 +854,14 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
     bufferTlm[i][2] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]-1][i];
     bufferTlm[i][3] = pt_c[1];
-    bufferTlm[4] = pt_c[0];
+    bufferTlm[i][4] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]-1][i];
     bufferTlm[i][5] = pt_c[1];
     bufferTlm[i][6] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]-1][i];
     bufferTlm[i][7] = pt_c[1];
     bufferTlm[i][8] = pt_c[0];
-    bufferTlm[i][9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
+    bufferTlm[i][9] = ESCCMD_crc8( bufferTlm[i], ESCCMD_TLM_LENGTH - 1 );
     
     ESCCMD_tlm_emu_nb[i]--;
     
@@ -963,12 +963,12 @@ int ESCCMD_tic( void )  {
       // If a packet is availble, process it
       if ( packet_available ) {
       
-        ESCCMD_tlm_deg[i]     =   bufferTlm[0];
-        ESCCMD_tlm_volt[i]    = ( bufferTlm[1] << 8 ) | bufferTlm[2];
-        ESCCMD_tlm_amp[i]     = ( bufferTlm[3] << 8 ) | bufferTlm[4];
-        ESCCMD_tlm_mah[i]     = ( bufferTlm[5] << 8 ) | bufferTlm[6];
-        ESCCMD_tlm_rpm[i]     = ( bufferTlm[7] << 8 ) | bufferTlm[8];
-        ESCCMD_tlm_valid[i]   = ( bufferTlm[9] == ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 ) );
+        ESCCMD_tlm_deg[i]     =   bufferTlm[i][0];
+        ESCCMD_tlm_volt[i]    = ( bufferTlm[i][1] << 8 ) | bufferTlm[i][2];
+        ESCCMD_tlm_amp[i]     = ( bufferTlm[i][3] << 8 ) | bufferTlm[i][4];
+        ESCCMD_tlm_mah[i]     = ( bufferTlm[i][5] << 8 ) | bufferTlm[i][6];
+        ESCCMD_tlm_rpm[i]     = ( bufferTlm[i][7] << 8 ) | bufferTlm[i][8];
+        ESCCMD_tlm_valid[i]   = ( bufferTlm[i][9] == ESCCMD_crc8( bufferTlm[i], ESCCMD_TLM_LENGTH - 1 ) );
 
         // If crc is invalid, increment crc error counter
         // and flush UART buffer
