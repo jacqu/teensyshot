@@ -52,6 +52,8 @@ HardwareSerial*     ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
                                                 &Serial4,
                                                 &Serial5,
                                                 &Serial6 };
+uint8_t             bufferTlm[ESCCMD_TLM_LENGTH];
+
 #ifdef ESCCMD_ESC_EMULATION
 #define             ESCCMD_EMU_TLM_MAX      5               // Max number of telemetry packets
 #define             ESCCMD_EMU_TLM_DEG      25              // Nominal temperature (deg)
@@ -832,13 +834,73 @@ int ESCCMD_read_rpm( uint8_t i, int16_t *rpm )  {
 }
 
 //
+//  Read next serial packet
+//
+uint8_t *ESCCMD_read_packet( uint8_t i )  {
+  #ifndef ESCCMD_ESC_EMULATION
+  static int      buffer_idx = 0;
+  static int      serial_ret;
+  #endif
+  
+  #ifdef ESCCMD_ESC_EMULATION
+  uint8_t *pt_c;
+  
+  // Check if a packet is available
+  if ( ESCCMD_tlm_emu_nb[i] )  {
+    pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]-1][i];
+    bufferTlm[0] = pt_c[0];
+    pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]-1][i];
+    bufferTlm[1] = pt_c[1];
+    bufferTlm[2] = pt_c[0];
+    pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]-1][i];
+    bufferTlm[3] = pt_c[1];
+    bufferTlm[4] = pt_c[0];
+    pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]-1][i];
+    bufferTlm[5] = pt_c[1];
+    bufferTlm[6] = pt_c[0];
+    pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]-1][i];
+    bufferTlm[7] = pt_c[1];
+    bufferTlm[8] = pt_c[0];
+    bufferTlm[9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
+    
+    ESCCMD_tlm_emu_nb[i]--;
+    
+    return bufferTlm;
+  }
+  #else
+  // Read all bytes in rx buffer up to packet length
+  while ( ( ESCCMD_serial[i]->available( ) ) && 
+          ( buffer_idx < ESCCMD_TLM_LENGTH ) ) {
+          
+    serial_ret = ESCCMD_serial[i]->read( );
+      
+    if ( serial_ret >= 0 )  {
+      bufferTlm[buffer_idx] = (uint8_t)serial_ret;
+      buffer_idx++;
+    }
+  }
+  
+  // Check if a complete packet has arrived
+  if ( ( ESCCMD_serial[i]->available( ) == ESCCMD_TLM_LENGTH ) )  {
+    
+    // Reset byte index in packet buffer
+    buffer_idx = 0;
+    
+    // Return pointer to buffer
+    return bufferTlm;
+  }
+  #endif
+
+  return NULL;
+}
+
+//
 //  This routine should be called within the main loop
 //  Returns ESCCMD_TIC_OCCURED when a tic occurs, 
 //  Return 0 otherwise.
 //
 int ESCCMD_tic( void )  {
-  static int      i, k, m, ret;
-  static uint8_t  bufferTlm[ESCCMD_TLM_LENGTH];
+  static int      i, m, ret;
   static uint16_t local_tic_pend;
   static uint8_t  packet_available;
 
@@ -852,106 +914,27 @@ int ESCCMD_tic( void )  {
   // Read telemetry if packets are pending
   for ( i = 0; i < ESCCMD_n; i++ )  {
      
-     // Reset packet flag
-     packet_available = 0;
+    // Reset packet flag
+    packet_available = 0;
      
     // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
-
-      #ifdef ESCCMD_ESC_EMULATION
-      uint8_t *pt_c;
-      
-      // Check if a packet is available
-      if ( ESCCMD_tlm_emu_nb[i] )  {
-        pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]-1][i];
-        bufferTlm[0] = pt_c[0];
-        pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]-1][i];
-        bufferTlm[1] = pt_c[1];
-        bufferTlm[2] = pt_c[0];
-        pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]-1][i];
-        bufferTlm[3] = pt_c[1];
-        bufferTlm[4] = pt_c[0];
-        pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]-1][i];
-        bufferTlm[5] = pt_c[1];
-        bufferTlm[6] = pt_c[0];
-        pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]-1][i];
-        bufferTlm[7] = pt_c[1];
-        bufferTlm[8] = pt_c[0];
-        bufferTlm[9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
-        packet_available = 1;
-        ESCCMD_tlm_emu_nb[i]--;
-        ESCCMD_tlm_pend[i]--;
-      }
-
-      // Process exceeding telemetry packet pending
-      if ( ESCCMD_tlm_pend[i] >= ESCCMD_TLM_MAX_PEND ) {
-      
-        // If remaining pending packet number exceeded, reset pending packets
-        for ( m = 0; ESCCMD_tlm_emu_nb[i]; m++ ) {
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]-1][i];
-          bufferTlm[0] = pt_c[0];
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]-1][i];
-          bufferTlm[1] = pt_c[1];
-          bufferTlm[2] = pt_c[0];
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]-1][i];
-          bufferTlm[3] = pt_c[1];
-          bufferTlm[4] = pt_c[0];
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]-1][i];
-          bufferTlm[5] = pt_c[1];
-          bufferTlm[6] = pt_c[0];
-          pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]-1][i];
-          bufferTlm[7] = pt_c[1];
-          bufferTlm[8] = pt_c[0];
-          bufferTlm[9] = ESCCMD_crc8( bufferTlm, ESCCMD_TLM_LENGTH - 1 );
-            
-          // Raise the packet_available flag
-          packet_available = 1;
-          ESCCMD_tlm_emu_nb[i]--;
-        }
-        
-        // m smaller than ESCCMD_tlm_pend[i] means lost packets: log an error
-        // m equal to ESCCMD_tlm_pend[i] means that some packets where just delayed : no error
-        // otherwise means excessive number of available packets: log an error
-        if ( m >= ESCCMD_tlm_pend[i] )  {
-          if ( m > ESCCMD_tlm_pend[i] )
-            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
-        }
-        else  {
-          if ( ESCCMD_tlm_lost_cnt[i] >= ESCCMD_TLM_MAX_PKT_LOSS )
-            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
-          else
-            ESCCMD_tlm_lost_cnt[i]++;
-        }
-          
-        // Update pending packet counter
-        ESCCMD_tlm_pend[i] = 0;
-      }
-      else
-        ESCCMD_tlm_lost_cnt[i] = 0;
-      
-      #else
       
       // Check if a complete packet has arrived
-      if ( ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH ) )  {
-  
-          // Read packet
-          for ( k = 0; k < ESCCMD_TLM_LENGTH; k++ )
-            bufferTlm[k] = ESCCMD_serial[i]->read( );
+      if ( ESCCMD_read_packet( i ) )  {
             
-          // Raise packet_available flag
-          packet_available = 1;
-          
-          // Update pending packet counter
-          ESCCMD_tlm_pend[i]--;
-        }
+        // Raise packet_available flag
+        packet_available = 1;
+        
+        // Update pending packet counter
+        ESCCMD_tlm_pend[i]--;
+      }
         
       // Process exceeding telemetry packet pending
       if ( ESCCMD_tlm_pend[i] >= ESCCMD_TLM_MAX_PEND ) {
       
         // If remaining pending packet number exceeded, reset pending packets
-        for ( m = 0; ( ESCCMD_serial[i]->available( ) >= ESCCMD_TLM_LENGTH ); m++ ) {
-          for ( k = 0; k < ESCCMD_TLM_LENGTH; k++ )
-            bufferTlm[k] = ESCCMD_serial[i]->read( );
+        for ( m = 0; ESCCMD_read_packet( i ); m++ ) {
             
           // Raise the packet_available flag
           packet_available = 1;
@@ -976,7 +959,6 @@ int ESCCMD_tic( void )  {
       }
       else
         ESCCMD_tlm_lost_cnt[i] = 0;
-      #endif
       
       // If a packet is availble, process it
       if ( packet_available ) {
@@ -999,10 +981,6 @@ int ESCCMD_tic( void )  {
           // Check for excessive CRC errors
           if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR )
             ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRCMAX;
-
-          // Wait for last out of sync bytes to come in
-          for ( k = 0; k < ESCCMD_tlm_pend[i] + 1; k++ )
-            delayMicroseconds( ESCCMD_TIMER_PERIOD );
 
           // Reset pending packet counter: all packets should be arrived
           ESCCMD_tlm_pend[i] = 0;

@@ -106,6 +106,7 @@ int     ESCCMD_read_volt( uint8_t, uint16_t* );
 int     ESCCMD_read_amp( uint8_t, uint16_t* );
 int     ESCCMD_read_mah( uint8_t, uint16_t* );
 int     ESCCMD_read_rpm( uint8_t, int16_t* );
+uint8_t *ESCCMD_read_packet( uint8_t );
 int     ESCCMD_tic( void );
 uint8_t ESCCMD_update_crc8( uint8_t, uint8_t );
 uint8_t ESCCMD_crc8( uint8_t*, uint8_t );
