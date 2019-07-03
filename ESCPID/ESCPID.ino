@@ -174,13 +174,13 @@ void setup() {
   for ( i = 0; i < ESCPID_NB_ESC; i++ )
     ESCCMD_beep( i, DSHOT_CMD_BEACON1 );
   
+  // Start periodic loop
+  ESCCMD_start_timer( );
+  
   // Stop all motors
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
     ESCCMD_stop( i );
   }
-  
-  // Start periodic loop
-  ESCCMD_start_timer( );
 
   // Reference watchdog is initially triggered
   ESCPID_comm_wd = ESCPID_COMM_WD_LEVEL;
