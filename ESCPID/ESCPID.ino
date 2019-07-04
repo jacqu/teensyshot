@@ -13,6 +13,12 @@
 #include "ESCCMD.h"
 #include "AWPID.h"
 #include "ESCPID.h"
+#include <SPI.h>
+
+// Defines
+#define   DEBUG_MSG_LENGTH  80
+#define   SLAVE_SELECT      16       // Pin assignation
+#define   DEBUG_COMM_SPEED  50000
 
 // Globals
 float     ESCPID_Reference[ESCPID_NB_ESC] = {};
@@ -45,6 +51,23 @@ Hostcomm_struct_t   Host_comm =   {
                                   {}
                                   };
 
+char debug_msg[DEBUG_MSG_LENGTH];
+SPISettings settings(DEBUG_COMM_SPEED, MSBFIRST, SPI_MODE0);
+
+/*
+ * Send debug message over hardware SPI
+ */
+void debug_send() {
+  SPI.beginTransaction(settings);
+  digitalWrite(SLAVE_SELECT, LOW);
+
+  SPI.transfer( debug_msg, DEBUG_MSG_LENGTH );
+
+  digitalWrite(SLAVE_SELECT, HIGH);
+  SPI.endTransaction();
+}
+
+
 //
 // Manage communication with the host
 //
@@ -54,49 +77,49 @@ int ESCPID_comm_update( void ) {
                       *ptout  = (uint8_t*)(&ESCPID_comm);
   static int          ret;
   static int          in_cnt = 0;
-  
+
   ret = 0;
-  
+
   // Read all incoming bytes available until incoming structure is complete
-  while(  ( Serial.available( ) > 0 ) && 
+  while(  ( Serial.available( ) > 0 ) &&
           ( in_cnt < (int)sizeof( Host_comm ) ) )
     ptin[in_cnt++] = Serial.read( );
-  
+
   // Check if a complete incoming packet is available
   if ( in_cnt == (int)sizeof( Host_comm ) ) {
-  
+
     // Clear incoming bytes counter
     in_cnt = 0;
-  
+
     // Check the validity of the magic number
     if ( Host_comm.magic != ESCPID_COMM_MAGIC ) {
-    
+
       // Flush input buffer
       while ( Serial.available( ) )
         Serial.read( );
-    
+
       ret = ESCPID_ERROR_MAGIC;
     }
     else {
-    
+
       // Valid packet received
-      
+
       // Reset the communication watchdog
       ESCPID_comm_wd = 0;
-      
+
       // Update the reference
       for ( i = 0; i < ESCPID_NB_ESC; i++ )
         ESCPID_Reference[i] = Host_comm.RPM_r[i];
-      
+
       // Update PID tuning parameters
       for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
-        
+
         // Gain conversion from int to float
         ESCPID_Kp[i] =  ESCPID_PID_ADAPT_GAIN * Host_comm.PID_P[i];
         ESCPID_Ki[i] =  ESCPID_PID_ADAPT_GAIN * Host_comm.PID_I[i];
         ESCPID_Kd[i] =  ESCPID_PID_ADAPT_GAIN * Host_comm.PID_D[i];
         ESCPID_f[i] =   ESCPID_PID_ADAPT_GAIN * Host_comm.PID_f[i];
-        
+
         // Update PID tuning
         AWPID_tune(     i,
                         ESCPID_Kp[i],
@@ -107,7 +130,7 @@ int ESCPID_comm_update( void ) {
                         ESCPID_Max[i]
                        );
       }
-      
+
       // Update output data structure values
       // If telemetry is invalid, data structure remains unmodified
       for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
@@ -118,10 +141,10 @@ int ESCPID_comm_update( void ) {
         ESCCMD_read_amp( i, &ESCPID_comm.amp[i] );
         ESCCMD_read_rpm( i, &ESCPID_comm.rpm[i] );
       }
-      
+
       // Send data structure to host
       Serial.write( ptout, sizeof( ESCPID_comm ) );
-      
+
       // Force immediate transmission
       Serial.send_now( );
     }
@@ -135,6 +158,11 @@ int ESCPID_comm_update( void ) {
 //
 void setup() {
   int i;
+
+  // Assign slave select pin
+  pinMode(SLAVE_SELECT, OUTPUT);
+  // Initialize SPI master
+  SPI.begin();
 
   // Initialize USB serial link
   Serial.begin( ESCPID_USB_UART_SPEED );
@@ -150,12 +178,12 @@ void setup() {
   }
 
   // Initialize PID subsystem
-  AWPID_init( ESCPID_NB_ESC, 
-              ESCPID_Kp, 
-              ESCPID_Ki, 
-              ESCPID_Kd, 
-              ESCPID_f, 
-              ESCPID_Min, 
+  AWPID_init( ESCPID_NB_ESC,
+              ESCPID_Kp,
+              ESCPID_Ki,
+              ESCPID_Kd,
+              ESCPID_f,
+              ESCPID_Min,
               ESCPID_Max );
 
   // Initialize the CMD subsystem
@@ -163,7 +191,7 @@ void setup() {
 
   // Arming ESCs
   ESCCMD_arm_all( );
-  
+
   // Switch 3D mode on
   ESCCMD_3D_on( );
 
@@ -173,10 +201,10 @@ void setup() {
   // Emit a beep
   for ( i = 0; i < ESCPID_NB_ESC; i++ )
     ESCCMD_beep( i, DSHOT_CMD_BEACON1 );
-  
+
   // Start periodic loop
   ESCCMD_start_timer( );
-  
+
   // Stop all motors
   for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
     ESCCMD_stop( i );
@@ -191,6 +219,13 @@ void setup() {
 //
 void loop( ) {
   static int    i, ret;
+  static int cnt = 0;
+
+  if ( ++cnt >= 100 ) {
+    cnt = 0;
+    snprintf( debug_msg, DEBUG_MSG_LENGTH, "M>> %s %5d\r\n", "Time: ", (int)millis());
+    debug_send();
+  }
 
   // Check for next timer event
   ret = ESCCMD_tic( );
@@ -198,35 +233,35 @@ void loop( ) {
   if ( ret == ESCCMD_TIC_OCCURED )  {
 
     // Process timer event
-    
+
     // Bidirectional serial exchange with host
     ESCPID_comm_update(  );
 
     // Read all measurements and compute current control signal
     for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
-    
+
       // Compute control signal only if telemetry is valid
       // In case of invalid telemetry, last control signal is sent
       if ( !ESCCMD_read_tlm_status( i ) ) {
-      
+
         // Update measurement
         ESCPID_Measurement[i] = ESCPID_comm.rpm[i];
-        
+
         // Update control signal
         if ( ESCPID_Reference[i] >= 0 )
-          AWPID_control(  i, 
-                          ESCPID_Reference[i], 
-                          ESCPID_Measurement[i], 
+          AWPID_control(  i,
+                          ESCPID_Reference[i],
+                          ESCPID_Measurement[i],
                           &ESCPID_Control[i] );
         else  {
-          AWPID_control(  i, 
-                          -ESCPID_Reference[i], 
-                          -ESCPID_Measurement[i], 
+          AWPID_control(  i,
+                          -ESCPID_Reference[i],
+                          -ESCPID_Measurement[i],
                           &ESCPID_Control[i] );
           ESCPID_Control[i] *= -1.0;
         }
       }
-      
+
       // Send control signal if reference has been sufficiently refreshed
       if ( ESCPID_comm_wd < ESCPID_COMM_WD_LEVEL ) {
         ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
@@ -234,4 +269,5 @@ void loop( ) {
       }
     }
   }
+  delayMicroseconds(100); // max loop frequency: 10 kHz
 }
