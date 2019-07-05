@@ -52,7 +52,7 @@ HardwareSerial*     ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
                                                 &Serial4,
                                                 &Serial5,
                                                 &Serial6 };
-uint8_t             ESCCMD_ bufferTlm[ESCCMD_NB_UART][ESCCMD_TLM_LENGTH];
+uint8_t             ESCCMD_bufferTlm[ESCCMD_NB_UART][ESCCMD_TLM_LENGTH];
 
 #ifdef ESCCMD_ESC_EMULATION
 #define             ESCCMD_EMU_TLM_MAX      5               // Max number of telemetry packets
@@ -851,22 +851,22 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
     ESCCMD_tlm_emu_nb[i]--;
     
     pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]][i];
-    ESCCMD_ bufferTlm[i][0] = pt_c[0];
+    ESCCMD_bufferTlm[i][0] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]][i];
-    ESCCMD_ bufferTlm[i][1] = pt_c[1];
-    ESCCMD_ bufferTlm[i][2] = pt_c[0];
+    ESCCMD_bufferTlm[i][1] = pt_c[1];
+    ESCCMD_bufferTlm[i][2] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]][i];
-    ESCCMD_ bufferTlm[i][3] = pt_c[1];
-    ESCCMD_ bufferTlm[i][4] = pt_c[0];
+    ESCCMD_bufferTlm[i][3] = pt_c[1];
+    ESCCMD_bufferTlm[i][4] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]][i];
-    ESCCMD_ bufferTlm[i][5] = pt_c[1];
-    ESCCMD_ bufferTlm[i][6] = pt_c[0];
+    ESCCMD_bufferTlm[i][5] = pt_c[1];
+    ESCCMD_bufferTlm[i][6] = pt_c[0];
     pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]][i];
-    ESCCMD_ bufferTlm[i][7] = pt_c[1];
-    ESCCMD_ bufferTlm[i][8] = pt_c[0];
-    ESCCMD_ bufferTlm[i][9] = ESCCMD_crc8( ESCCMD_ bufferTlm[i], ESCCMD_TLM_LENGTH - 1 );
+    ESCCMD_bufferTlm[i][7] = pt_c[1];
+    ESCCMD_bufferTlm[i][8] = pt_c[0];
+    ESCCMD_bufferTlm[i][9] = ESCCMD_crc8( ESCCMD_bufferTlm[i], ESCCMD_TLM_LENGTH - 1 );
     
-    return ESCCMD_ bufferTlm[i];
+    return ESCCMD_bufferTlm[i];
   }
   #else
   // Read all bytes in rx buffer up to packet length
@@ -876,7 +876,7 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
     serial_ret = ESCCMD_serial[i]->read( );
       
     if ( serial_ret >= 0 )  {
-      ESCCMD_ bufferTlm[i][buffer_idx[i]] = (uint8_t)serial_ret;
+      ESCCMD_bufferTlm[i][buffer_idx[i]] = (uint8_t)serial_ret;
       buffer_idx[i]++;
     }
   }
@@ -888,7 +888,7 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
     buffer_idx[i] = 0;
     
     // Return pointer to buffer
-    return ESCCMD_ bufferTlm[i];
+    return ESCCMD_bufferTlm[i];
   }
   #endif
 
@@ -902,12 +902,12 @@ int ESCCMD_extract_packet_data( uint8_t i )  {
 
   // Extract packet data
         
-  ESCCMD_tlm_deg[i]     =   ESCCMD_ bufferTlm[i][0];
-  ESCCMD_tlm_volt[i]    = ( ESCCMD_ bufferTlm[i][1] << 8 ) | ESCCMD_ bufferTlm[i][2];
-  ESCCMD_tlm_amp[i]     = ( ESCCMD_ bufferTlm[i][3] << 8 ) | ESCCMD_ bufferTlm[i][4];
-  ESCCMD_tlm_mah[i]     = ( ESCCMD_ bufferTlm[i][5] << 8 ) | ESCCMD_ bufferTlm[i][6];
-  ESCCMD_tlm_rpm[i]     = ( ESCCMD_ bufferTlm[i][7] << 8 ) | ESCCMD_ bufferTlm[i][8];
-  ESCCMD_tlm_valid[i]   = ( ESCCMD_ bufferTlm[i][9] == ESCCMD_crc8( ESCCMD_ bufferTlm[i], ESCCMD_TLM_LENGTH - 1 ) );
+  ESCCMD_tlm_deg[i]     =   ESCCMD_bufferTlm[i][0];
+  ESCCMD_tlm_volt[i]    = ( ESCCMD_bufferTlm[i][1] << 8 ) | ESCCMD_bufferTlm[i][2];
+  ESCCMD_tlm_amp[i]     = ( ESCCMD_bufferTlm[i][3] << 8 ) | ESCCMD_bufferTlm[i][4];
+  ESCCMD_tlm_mah[i]     = ( ESCCMD_bufferTlm[i][5] << 8 ) | ESCCMD_bufferTlm[i][6];
+  ESCCMD_tlm_rpm[i]     = ( ESCCMD_bufferTlm[i][7] << 8 ) | ESCCMD_bufferTlm[i][8];
+  ESCCMD_tlm_valid[i]   = ( ESCCMD_bufferTlm[i][9] == ESCCMD_crc8( ESCCMD_bufferTlm[i], ESCCMD_TLM_LENGTH - 1 ) );
 
   // If crc is invalid, increment crc error counter
   // and flush UART buffer
