@@ -163,51 +163,6 @@ int ESCCMD_arm_all( void )  {
 }
 
 //
-//  Make motor number k beep
-//
-//  Return values: see defines
-//
-int ESCCMD_beep( uint8_t i, uint16_t tone )  {
-  static int k;
-
-  // Check if everything is initialized
-  if ( !ESCCMD_init_flag )
-    return ESCCMD_ERROR_INIT;
-
-  // Check if motor is within range
-  if ( i >= ESCCMD_n )
-    return ESCCMD_ERROR_PARAM;
-  
-  // Check if timer is disabled
-  if ( ESCCMD_timer_flag )
-    ESCCMD_ERROR( ESCCMD_ERROR_PARAM ) 
-
-  // Check if tone value is within valid range
-  if ( ( tone < DSHOT_CMD_BEACON1 ) || ( tone > DSHOT_CMD_BEACON5 ) )
-    ESCCMD_ERROR( ESCCMD_ERROR_PARAM )
-
-  // Define beep command only for motor n
-  for ( k = 0; k < ESCCMD_n; k++ )  {
-    ESCCMD_cmd[k] = DSHOT_CMD_MOTOR_STOP;
-    ESCCMD_tlm[k] = 1;
-  }
-  ESCCMD_cmd[i] = tone;
-
-  // Send command a number of times corresponding to the desired duration
-  for ( k = 0; k < ( ( ESCCMD_BEEP_DURATION * 1000 ) / ESCCMD_CMD_DELAY ); k++ )  {
-
-    // Send DSHOT signal to all ESCs
-    if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) )
-      ESCCMD_ERROR( ESCCMD_ERROR_DSHOT )
-
-    // Wait some time
-    delayMicroseconds( ESCCMD_CMD_DELAY );
-  }
-
-  return 0;
-}
-
-//
 //  Activate 3D mode
 //
 //  Return values: see defines
@@ -919,8 +874,9 @@ int ESCCMD_extract_packet_data( uint8_t i )  {
     ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRC;
 
     // Check for excessive CRC errors
-    if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR )
+    if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR ) {
       ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRCMAX;
+    }
     
     // Flush UART incoming buffer
     ESCCMD_serial[i]->clear( );
@@ -995,8 +951,9 @@ void ESCCMD_emulate_tlm( void )   {
       
       // Increment tlm counter according to packet loss statistics
       #ifdef ESCCMD_ESC_EMU_PKT_LOSS
-      if ( (int)( ( (float)rand( ) / (float)RAND_MAX * (float)ESCCMD_ESC_FRACTION_PKTLOSS ) ) )
+      if ( (int)( ( (float)rand( ) / (float)RAND_MAX * (float)ESCCMD_ESC_FRACTION_PKTLOSS ) ) ) {
         ESCCMD_tlm_emu_nb[i]++;
+      }
       #else
       ESCCMD_tlm_emu_nb[i]++;
       #endif
@@ -1015,8 +972,9 @@ int ESCCMD_tic( void )  {
   static uint16_t local_tic_pend;
  
   // Check if timer started
-  if ( !ESCCMD_timer_flag )
+  if ( !ESCCMD_timer_flag ) {
     return 0;
+  }
     
   //// Read telemetry
   
@@ -1042,10 +1000,12 @@ int ESCCMD_tic( void )  {
     if ( ESCCMD_tlm_pend[i] > ESCCMD_TLM_MAX_PEND ) {
 
       // Packet is considered as lost: update packet lost counter
-      if ( ESCCMD_tlm_lost_cnt[i] >= ESCCMD_TLM_MAX_PKT_LOSS )
+      if ( ESCCMD_tlm_lost_cnt[i] >= ESCCMD_TLM_MAX_PKT_LOSS )  {
         ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
-      else
+      }
+      else  {
         ESCCMD_tlm_lost_cnt[i]++;
+      }
 
       // Clear packet pending counter
       ESCCMD_tlm_pend[i] = 0;
@@ -1079,17 +1039,19 @@ int ESCCMD_tic( void )  {
 
     // Check if everything is initialized
     if ( !ESCCMD_init_flag )  {
-      for ( i = 0; i < ESCCMD_n; i++ ) 
+      for ( i = 0; i < ESCCMD_n; i++ )  {
         ESCCMD_last_error[i] = ESCCMD_ERROR_INIT;
+      }
       return ESCCMD_TIC_OCCURED;
     }
 
     // Check if all ESC are armed
-    for ( i = 0; i < ESCCMD_n; i++ )
+    for ( i = 0; i < ESCCMD_n; i++ )  {
       if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )  {
         ESCCMD_last_error[i] = ESCCMD_ERROR_SEQ;
         return ESCCMD_TIC_OCCURED;
       }
+    }
 
     // Throttle watchdog
     for ( i = 0; i < ESCCMD_n; i++ )  {
@@ -1108,16 +1070,19 @@ int ESCCMD_tic( void )  {
 
     // Send current command
     if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) ) {
-      for ( i = 0; i < ESCCMD_n; i++ )
+      for ( i = 0; i < ESCCMD_n; i++ )  {
         ESCCMD_last_error[i] = ESCCMD_ERROR_DSHOT;
+      }
     }
     else  {
       delayMicroseconds( ESCCMD_CMD_DELAY );
   
       // Update telemetry packet pending counter
-      for ( i = 0; i < ESCCMD_n; i++ )
-        if ( ESCCMD_tlm[i] )
+      for ( i = 0; i < ESCCMD_n; i++ )  {
+        if ( ESCCMD_tlm[i] )  {
           ESCCMD_tlm_pend[i]++;
+        }
+      }
 
       #ifdef ESCCMD_ESC_EMULATION
       ESCCMD_emulate_tlm( );
@@ -1169,9 +1134,11 @@ void ESCCMD_ISR_timer( void ) {
   if ( ESCCMD_tic_pend >= ESCCMD_TIMER_MAX_MISS )  {
 
     // ESC watchdog switch to disarmed and stopped mode
-    for ( i = 0; i < ESCCMD_n; i++ )
+    for ( i = 0; i < ESCCMD_n; i++ )  {
       ESCCMD_state[i] &= ~( ESCCMD_STATE_ARMED | ESCCMD_STATE_START );
+    }
   }
-  else
+  else  {
     ESCCMD_tic_pend++;
+  }
 }

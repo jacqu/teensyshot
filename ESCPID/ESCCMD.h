@@ -35,8 +35,8 @@
 #define ESCCMD_TLM_MAX_PEND     1                 // Maximum number of telemetry packet pending
 #define ESCCMD_TLM_NB_POLES     14                // Number of motor poles
 #define ESCCMD_TLM_MAX_TEMP     100               // Maximum ESC temperature (°C)
-#define ESCCMD_TLM_MAX_CRC_ERR  2                 // Maximum CRC errors (per ESCCMD_TLM_PER iterations)
-#define ESCCMD_TLM_MAX_PKT_LOSS 2                 // Maximum packet loss (per ESCCMD_TLM_PER iterations)
+#define ESCCMD_TLM_MAX_CRC_ERR  5                 // Maximum CRC errors (per ESCCMD_TLM_PER iterations)
+#define ESCCMD_TLM_MAX_PKT_LOSS 5                 // Maximum packet loss (per ESCCMD_TLM_PER iterations)
 #define ESCCMD_TLM_PER          1000              // If 100, error thresholds are in percent     
 
 #define ESCCMD_MAX_THROTTLE     1999              // Max default throttle value
@@ -92,7 +92,6 @@ typedef enum {
 // Function prototypes
 void    ESCCMD_init( uint8_t );
 int     ESCCMD_arm_all( void );
-int     ESCCMD_beep( uint8_t, uint16_t );
 int     ESCCMD_3D_on( void );
 int     ESCCMD_3D_off( void );
 int     ESCCMD_start_timer( void );

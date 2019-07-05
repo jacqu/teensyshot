@@ -169,10 +169,6 @@ void setup() {
 
   // Arming ESCs
   ESCCMD_arm_all( );
-
-  // Emit a beep
-  for ( i = 0; i < ESCPID_NB_ESC; i++ )
-    ESCCMD_beep( i, DSHOT_CMD_BEACON1 );
   
   // Start periodic loop
   ESCCMD_start_timer( );
@@ -195,12 +191,12 @@ void loop( ) {
   // Check for next timer event
   ret = ESCCMD_tic( );
 
+  // Bidirectional serial exchange with host
+  ESCPID_comm_update(  );
+
   if ( ret == ESCCMD_TIC_OCCURED )  {
 
     // Process timer event
-    
-    // Bidirectional serial exchange with host
-    ESCPID_comm_update(  );
 
     // Read all measurements and compute current control signal
     for ( i = 0; i < ESCPID_NB_ESC; i++ ) {
