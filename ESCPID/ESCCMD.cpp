@@ -23,7 +23,7 @@
 //
 //  Global variables
 //
-uint8_t             ESCCMD_n;                               // Number of initialized outputs
+volatile uint8_t    ESCCMD_n;                               // Number of initialized outputs
 
 volatile uint8_t    ESCCMD_state[ESCCMD_MAX_ESC];           // Current state of the cmd subsystem
 uint16_t            ESCCMD_CRC_errors[ESCCMD_MAX_ESC];      // Overall number of CRC error since start
