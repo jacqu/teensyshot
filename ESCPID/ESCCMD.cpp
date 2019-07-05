@@ -52,7 +52,7 @@ HardwareSerial*     ESCCMD_serial[ESCCMD_NB_UART] = {       // Array of Serial o
                                                 &Serial4,
                                                 &Serial5,
                                                 &Serial6 };
-uint8_t             bufferTlm[ESCCMD_NB_UART][ESCCMD_TLM_LENGTH];
+uint8_t             ESCCMD_ bufferTlm[ESCCMD_NB_UART][ESCCMD_TLM_LENGTH];
 
 #ifdef ESCCMD_ESC_EMULATION
 #define             ESCCMD_EMU_TLM_MAX      5               // Max number of telemetry packets
@@ -847,25 +847,26 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
   
   // Check if a packet is available
   if ( ESCCMD_tlm_emu_nb[i] )  {
-    pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[i][0] = pt_c[0];
-    pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[i][1] = pt_c[1];
-    bufferTlm[i][2] = pt_c[0];
-    pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[i][3] = pt_c[1];
-    bufferTlm[i][4] = pt_c[0];
-    pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[i][5] = pt_c[1];
-    bufferTlm[i][6] = pt_c[0];
-    pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]-1][i];
-    bufferTlm[i][7] = pt_c[1];
-    bufferTlm[i][8] = pt_c[0];
-    bufferTlm[i][9] = ESCCMD_crc8( bufferTlm[i], ESCCMD_TLM_LENGTH - 1 );
-    
+  
     ESCCMD_tlm_emu_nb[i]--;
     
-    return bufferTlm[i];
+    pt_c = &ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]][i];
+    ESCCMD_ bufferTlm[i][0] = pt_c[0];
+    pt_c = (uint8_t*)&ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]][i];
+    ESCCMD_ bufferTlm[i][1] = pt_c[1];
+    ESCCMD_ bufferTlm[i][2] = pt_c[0];
+    pt_c = (uint8_t*)&ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]][i];
+    ESCCMD_ bufferTlm[i][3] = pt_c[1];
+    ESCCMD_ bufferTlm[i][4] = pt_c[0];
+    pt_c = (uint8_t*)&ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]][i];
+    ESCCMD_ bufferTlm[i][5] = pt_c[1];
+    ESCCMD_ bufferTlm[i][6] = pt_c[0];
+    pt_c = (uint8_t*)&ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]][i];
+    ESCCMD_ bufferTlm[i][7] = pt_c[1];
+    ESCCMD_ bufferTlm[i][8] = pt_c[0];
+    ESCCMD_ bufferTlm[i][9] = ESCCMD_crc8( ESCCMD_ bufferTlm[i], ESCCMD_TLM_LENGTH - 1 );
+    
+    return ESCCMD_ bufferTlm[i];
   }
   #else
   // Read all bytes in rx buffer up to packet length
@@ -875,7 +876,7 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
     serial_ret = ESCCMD_serial[i]->read( );
       
     if ( serial_ret >= 0 )  {
-      bufferTlm[i][buffer_idx[i]] = (uint8_t)serial_ret;
+      ESCCMD_ bufferTlm[i][buffer_idx[i]] = (uint8_t)serial_ret;
       buffer_idx[i]++;
     }
   }
@@ -887,11 +888,61 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
     buffer_idx[i] = 0;
     
     // Return pointer to buffer
-    return bufferTlm[i];
+    return ESCCMD_ bufferTlm[i];
   }
   #endif
 
   return NULL;
+}
+
+//
+// Extract data from the current packet
+//
+int ESCCMD_extract_packet_data( uint8_t i )  {
+
+  // Extract packet data
+        
+  ESCCMD_tlm_deg[i]     =   ESCCMD_ bufferTlm[i][0];
+  ESCCMD_tlm_volt[i]    = ( ESCCMD_ bufferTlm[i][1] << 8 ) | ESCCMD_ bufferTlm[i][2];
+  ESCCMD_tlm_amp[i]     = ( ESCCMD_ bufferTlm[i][3] << 8 ) | ESCCMD_ bufferTlm[i][4];
+  ESCCMD_tlm_mah[i]     = ( ESCCMD_ bufferTlm[i][5] << 8 ) | ESCCMD_ bufferTlm[i][6];
+  ESCCMD_tlm_rpm[i]     = ( ESCCMD_ bufferTlm[i][7] << 8 ) | ESCCMD_ bufferTlm[i][8];
+  ESCCMD_tlm_valid[i]   = ( ESCCMD_ bufferTlm[i][9] == ESCCMD_crc8( ESCCMD_ bufferTlm[i], ESCCMD_TLM_LENGTH - 1 ) );
+
+  // If crc is invalid, increment crc error counter
+  // and flush UART buffer
+  if ( !ESCCMD_tlm_valid[i] ) {
+
+    ESCCMD_CRC_errors[i]++;
+
+    ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRC;
+
+    // Check for excessive CRC errors
+    if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR )
+      ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRCMAX;
+    
+    // Flush UART incoming buffer
+    ESCCMD_serial[i]->clear( );
+    
+    // Reset pending packet counter
+    ESCCMD_tlm_pend[i] = 0;
+
+    // Reset lost packet counter
+    ESCCMD_tlm_lost_cnt[i] = 0;
+    
+    return ESCCMD_last_error[i];
+  }
+  else {
+    // Make some verifications on the telemetry
+
+    // Check for overtheating of the ESC
+    if ( ESCCMD_tlm_deg[i] >= ESCCMD_TLM_MAX_TEMP ) {
+      ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_TEMP;
+      return ESCCMD_last_error[i];
+    }
+  }
+
+  return 0;
 }
 
 //
@@ -900,44 +951,39 @@ uint8_t *ESCCMD_read_packet( uint8_t i )  {
 //  Return 0 otherwise.
 //
 int ESCCMD_tic( void )  {
-  static int      i, m, ret;
+  static int      i, m;
   static uint16_t local_tic_pend;
-  static uint8_t  packet_available;
-
-  // Defaults
-  ret = 0;
  
   // Check if timer started
   if ( !ESCCMD_timer_flag )
     return 0;
- 
+    
+  //
   // Read telemetry if packets are pending
+  //
   for ( i = 0; i < ESCCMD_n; i++ )  {
-     
-    // Reset packet flag
-    packet_available = 0;
      
     // Process telemetry packets if available
     if ( ESCCMD_tlm_pend[i] ) {
       
       // Check if a complete packet has arrived
       if ( ESCCMD_read_packet( i ) )  {
-            
-        // Raise packet_available flag
-        packet_available = 1;
         
         // Update pending packet counter
         ESCCMD_tlm_pend[i]--;
+        
+        // Extract packet data
+        ESCCMD_extract_packet_data( i );
       }
         
       // Process exceeding telemetry packet pending
       if ( ESCCMD_tlm_pend[i] >= ESCCMD_TLM_MAX_PEND ) {
       
-        // If remaining pending packet number exceeded, reset pending packets
+        // Check for available packets
         for ( m = 0; ESCCMD_read_packet( i ); m++ ) {
             
-          // Raise the packet_available flag
-          packet_available = 1;
+          // Extract packet data
+          ESCCMD_extract_packet_data( i );
         }
         
         // m smaller than ESCCMD_tlm_pend[i] means lost packets: log an error
@@ -957,52 +1003,16 @@ int ESCCMD_tic( void )  {
         // Update pending packet counter
         ESCCMD_tlm_pend[i] = 0;
       }
-      else
+      else  {
         ESCCMD_tlm_lost_cnt[i] = 0;
-      
-      // If a packet is availble, process it
-      if ( packet_available ) {
-      
-        ESCCMD_tlm_deg[i]     =   bufferTlm[i][0];
-        ESCCMD_tlm_volt[i]    = ( bufferTlm[i][1] << 8 ) | bufferTlm[i][2];
-        ESCCMD_tlm_amp[i]     = ( bufferTlm[i][3] << 8 ) | bufferTlm[i][4];
-        ESCCMD_tlm_mah[i]     = ( bufferTlm[i][5] << 8 ) | bufferTlm[i][6];
-        ESCCMD_tlm_rpm[i]     = ( bufferTlm[i][7] << 8 ) | bufferTlm[i][8];
-        ESCCMD_tlm_valid[i]   = ( bufferTlm[i][9] == ESCCMD_crc8( bufferTlm[i], ESCCMD_TLM_LENGTH - 1 ) );
-
-        // If crc is invalid, increment crc error counter
-        // and flush UART buffer
-        if ( !ESCCMD_tlm_valid[i] ) {
-
-          ESCCMD_CRC_errors[i]++;
-
-          ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRC;
-
-          // Check for excessive CRC errors
-          if ( ESCCMD_CRC_errors[i] >= ESCCMD_TLM_MAX_CRC_ERR )
-            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CRCMAX;
-
-          // Reset pending packet counter: all packets should be arrived
-          ESCCMD_tlm_pend[i] = 0;
-
-          // Reset lost packet counter
-          ESCCMD_tlm_lost_cnt[i] = 0;
-
-          // Flush UART incoming buffer
-          ESCCMD_serial[i]->clear( );
-        }
-        else {
-          // Make some verifications on the telemetry
-
-          // Check for overtheating of the ESC
-          if ( ESCCMD_tlm_deg[i] >= ESCCMD_TLM_MAX_TEMP )
-            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_TEMP;
-        }
       }
     }
   }
-
-  // Do something only if tics are pending
+  
+  //
+  // Process clock tics
+  //
+  
   noInterrupts();
   local_tic_pend = ESCCMD_tic_pend;
   interrupts();
@@ -1014,21 +1024,18 @@ int ESCCMD_tic( void )  {
     ESCCMD_tic_pend--;
     interrupts();
 
-    // Informs caller that a tic occured
-    ret = ESCCMD_TIC_OCCURED;
-
     // Check if everything is initialized
     if ( !ESCCMD_init_flag )  {
       for ( i = 0; i < ESCCMD_n; i++ ) 
         ESCCMD_last_error[i] = ESCCMD_ERROR_INIT;
-      return ret;
+      return ESCCMD_TIC_OCCURED;
     }
 
     // Check if all ESC are armed
     for ( i = 0; i < ESCCMD_n; i++ )
       if ( !( ESCCMD_state[i] & ESCCMD_STATE_ARMED ) )  {
         ESCCMD_last_error[i] = ESCCMD_ERROR_SEQ;
-        return ret;
+        return ESCCMD_TIC_OCCURED;
       }
 
     // Throttle watchdog
@@ -1111,9 +1118,12 @@ int ESCCMD_tic( void )  {
       }
       #endif
     }
+    
+    // Inform caller that a clock tic occured
+    return ESCCMD_TIC_OCCURED;
   }
 
-  return ret;
+  return 0;
 }
 
 //
