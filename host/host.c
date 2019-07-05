@@ -41,7 +41,7 @@
 //#define HOST_MODEMDEVICE    "/dev/ttyACM0"
 //#define HOST_MODEMDEVICE    "/dev/tty.usbmodem43677001"
 //#define HOST_MODEMDEVICE      "/dev/tty.usbmodem54887501"
-#define HOST_DEV_SERIALNB     43677001              // Serial number of the teensy
+#define HOST_DEV_SERIALNB     4367700              	// Serial number of the teensy
 //#define HOST_DEV_SERIALNB      54887501
 #define HOST_DEV_SERIALLG     10                    // Max length of a serial number
 
