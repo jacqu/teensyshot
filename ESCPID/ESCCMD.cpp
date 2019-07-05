@@ -1004,8 +1004,8 @@ int ESCCMD_tic( void )  {
         ESCCMD_tlm_lost_cnt[i]++;
       }
 
-      // Clear packet pending counter
-      ESCCMD_tlm_pend[i] = 0;
+      // Decrement packet pending counter
+      ESCCMD_tlm_pend[i]--;
     }
   }
   
