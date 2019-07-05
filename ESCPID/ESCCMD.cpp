@@ -39,6 +39,7 @@ uint8_t             ESCCMD_tlm[ESCCMD_MAX_ESC];             // Set to 1 when ask
 uint8_t             ESCCMD_tlm_pend[ESCCMD_MAX_ESC];        // Flag indicating a pending telemetry data request
 uint8_t             ESCCMD_tlm_valid[ESCCMD_MAX_ESC];       // Flag indicating the validity of telemetry data
 uint8_t             ESCCMD_tlm_lost_cnt[ESCCMD_MAX_ESC];    // Lost packet counter of telemetry data
+uint64_t            ESCCMD_tic_counter = 0;                 // Counts the number of clock iterations
 
 volatile uint16_t   ESCCMD_tic_pend = 0;                    // Number of timer tic waiting for ackowledgement
 volatile uint8_t    ESCCMD_init_flag = 0;                   // Subsystem initialization flag
@@ -951,7 +952,7 @@ int ESCCMD_extract_packet_data( uint8_t i )  {
 //  Return 0 otherwise.
 //
 int ESCCMD_tic( void )  {
-  static int      i, m;
+  static int      i;
   static uint16_t local_tic_pend;
  
   // Check if timer started
@@ -959,53 +960,34 @@ int ESCCMD_tic( void )  {
     return 0;
     
   //
-  // Read telemetry if packets are pending
+  // Read telemetry
   //
   for ( i = 0; i < ESCCMD_n; i++ )  {
-     
-    // Process telemetry packets if available
-    if ( ESCCMD_tlm_pend[i] ) {
-      
-      // Check if a complete packet has arrived
-      if ( ESCCMD_read_packet( i ) )  {
+    
+    // Process all available telemetry packets
+    while ( ESCCMD_read_packet( i ) )  {
         
-        // Update pending packet counter
+      // Update pending packet counter
+      if ( ESCCMD_tlm_pend[i] ) {
         ESCCMD_tlm_pend[i]--;
-        
-        // Extract packet data
-        ESCCMD_extract_packet_data( i );
-      }
-        
-      // Process exceeding telemetry packet pending
-      if ( ESCCMD_tlm_pend[i] >= ESCCMD_TLM_MAX_PEND ) {
-      
-        // Check for available packets
-        for ( m = 0; ESCCMD_read_packet( i ); m++ ) {
-            
-          // Extract packet data
-          ESCCMD_extract_packet_data( i );
-        }
-        
-        // m smaller than ESCCMD_tlm_pend[i] means lost packets: log an error
-        // m equal to ESCCMD_tlm_pend[i] means that some packets where just delayed : no error
-        // otherwise means excessive number of available packets: log an error
-        if ( m >= ESCCMD_tlm_pend[i] )  {
-          if ( m > ESCCMD_tlm_pend[i] )
-            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
-        }
-        else  {
-          if ( ESCCMD_tlm_lost_cnt[i] >= ESCCMD_TLM_MAX_PKT_LOSS )
-            ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
-          else
-            ESCCMD_tlm_lost_cnt[i]++;
-        }
-        
-        // Update pending packet counter
-        ESCCMD_tlm_pend[i] = 0;
       }
       else  {
-        ESCCMD_tlm_lost_cnt[i] = 0;
+        // Spurious packet ?
+        ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_PEND;
       }
+      
+      // Extract packet data
+      ESCCMD_extract_packet_data( i );
+    }
+        
+    // Check for exceeding packet pending
+    if ( ESCCMD_tlm_pend[i] > ESCCMD_TLM_MAX_PEND ) {
+
+      // Update packet lost counter
+      if ( ESCCMD_tlm_lost_cnt[i] >= ESCCMD_TLM_MAX_PKT_LOSS )
+        ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_LOST;
+      else
+        ESCCMD_tlm_lost_cnt[i]++;
     }
   }
   
@@ -1023,6 +1005,18 @@ int ESCCMD_tic( void )  {
     noInterrupts();
     ESCCMD_tic_pend--;
     interrupts();
+
+    // Update counters
+    ESCCMD_tic_counter++;
+    
+    if ( !( ESCCMD_tic_counter % ESCCMD_TLM_PER ) ) {
+      
+      // Clear stat counters every ESCCMD_TLM_PER iterations
+      for ( i = 0; i < ESCCMD_n; i++ )  {
+        ESCCMD_tlm_lost_cnt[i] = 0;
+        ESCCMD_CRC_errors[i] = 0; 
+      }
+    }
 
     // Check if everything is initialized
     if ( !ESCCMD_init_flag )  {
