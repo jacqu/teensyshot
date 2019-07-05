@@ -14,7 +14,7 @@
 
 // ESC emulation
 #define ESCCMD_ESC_EMULATION                                // Uncomment to activate ESC emulation
-#define ESCCMD_ESC_EMU_PKT_LOSS                             // Uncomment to emulate packet loss
+//#define ESCCMD_ESC_EMU_PKT_LOSS                             // Uncomment to emulate packet loss
 #define ESCCMD_ESC_FRACTION_PKTLOSS       300               // One out of x packets lost
 
 // Error handling
@@ -906,58 +906,55 @@ int ESCCMD_extract_packet_data( uint8_t i )  {
 //
 //  Emulate telemetry
 //
-void ESCCMD_emulate_tlm( void )   {
+void ESCCMD_emulate_tlm( uint8_t i )   {
   static uint8_t  local_state;
-  static int      i;
   
   // Bufferize emulated telemetry data
-  for ( i = 0; i < ESCCMD_n; i++ )  {
-    if ( ESCCMD_tlm_emu_nb[i] < ESCCMD_EMU_TLM_MAX ) {
-      if ( ESCCMD_tlm[i] )  {
-        ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]][i]  = (uint8_t)( ESCCMD_EMU_TLM_DEG *   ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
-        ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]][i] = (uint16_t)( ESCCMD_EMU_TLM_VOLT * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
-        ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]][i]  = (uint16_t)( ESCCMD_EMU_TLM_AMP *  ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
-        ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]][i]  = (uint16_t)( ESCCMD_EMU_TLM_MAH *  ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
+  if ( ESCCMD_tlm_emu_nb[i] < ESCCMD_EMU_TLM_MAX ) {
+    if ( ESCCMD_tlm[i] )  {
+      ESCCMD_tlm_emu_deg[ESCCMD_tlm_emu_nb[i]][i]  = (uint8_t)( ESCCMD_EMU_TLM_DEG *   ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
+      ESCCMD_tlm_emu_volt[ESCCMD_tlm_emu_nb[i]][i] = (uint16_t)( ESCCMD_EMU_TLM_VOLT * ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
+      ESCCMD_tlm_emu_amp[ESCCMD_tlm_emu_nb[i]][i]  = (uint16_t)( ESCCMD_EMU_TLM_AMP *  ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
+      ESCCMD_tlm_emu_mah[ESCCMD_tlm_emu_nb[i]][i]  = (uint16_t)( ESCCMD_EMU_TLM_MAH *  ( 1.0 + ESCCMD_EMU_TLM_NOISE / 100.0 * (float)( rand( ) - RAND_MAX / 2 ) / ( RAND_MAX / 2 ) ) );
 
-        // Define a local copy of the state
-        noInterrupts();
-        local_state = ESCCMD_state[i];
-        interrupts();
+      // Define a local copy of the state
+      noInterrupts();
+      local_state = ESCCMD_state[i];
+      interrupts();
 
-        // Compute rpm according to throttle cmd
-        if ( local_state & ESCCMD_STATE_3D )  {
-        
-          // 3D mode
-          if ( ESCCMD_cmd[i] > DSHOT_CMD_MAX + 1 + ESCCMD_MAX_3D_THROTTLE ) {
-            // Negative direction
-            ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 2 + ESCCMD_MAX_3D_THROTTLE ) ) / ESCCMD_MAX_3D_THROTTLE
-                                                                  * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
-                                                                  / 100.0 * ESCCMD_TLM_NB_POLES / 2 ); 
-          }
-          else  {
-            // Positive direction
-            ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 1 ) ) / ESCCMD_MAX_3D_THROTTLE
-                                                                  * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
-                                                                  / 100.0  * ESCCMD_TLM_NB_POLES / 2 ); 
-          }
+      // Compute rpm according to throttle cmd
+      if ( local_state & ESCCMD_STATE_3D )  {
+      
+        // 3D mode
+        if ( ESCCMD_cmd[i] > DSHOT_CMD_MAX + 1 + ESCCMD_MAX_3D_THROTTLE ) {
+          // Negative direction
+          ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 2 + ESCCMD_MAX_3D_THROTTLE ) ) / ESCCMD_MAX_3D_THROTTLE
+                                                                * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
+                                                                / 100.0 * ESCCMD_TLM_NB_POLES / 2 ); 
         }
         else  {
-          // Normal mode
-          ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 1 ) ) / ESCCMD_MAX_THROTTLE
-                                                                  * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
-                                                                  / 100.0  * ESCCMD_TLM_NB_POLES / 2 );
+          // Positive direction
+          ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 1 ) ) / ESCCMD_MAX_3D_THROTTLE
+                                                                * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
+                                                                / 100.0  * ESCCMD_TLM_NB_POLES / 2 ); 
         }
       }
-      
-      // Increment tlm counter according to packet loss statistics
-      #ifdef ESCCMD_ESC_EMU_PKT_LOSS
-      if ( (int)( ( (float)rand( ) / (float)RAND_MAX * (float)ESCCMD_ESC_FRACTION_PKTLOSS ) ) ) {
-        ESCCMD_tlm_emu_nb[i]++;
+      else  {
+        // Normal mode
+        ESCCMD_tlm_emu_rpm[ESCCMD_tlm_emu_nb[i]][i] = (uint16_t)(  (float)( ESCCMD_cmd[i] - ( DSHOT_CMD_MAX + 1 ) ) / ESCCMD_MAX_THROTTLE
+                                                                * (float)( ESCCMD_EMU_TLM_VOLT / 100 ) * ESCCMD_EMU_MOTOR_KV
+                                                                / 100.0  * ESCCMD_TLM_NB_POLES / 2 );
       }
-      #else
-      ESCCMD_tlm_emu_nb[i]++;
-      #endif
     }
+    
+    // Increment tlm counter according to packet loss statistics
+    #ifdef ESCCMD_ESC_EMU_PKT_LOSS
+    if ( (int)( ( (float)rand( ) / (float)RAND_MAX * (float)ESCCMD_ESC_FRACTION_PKTLOSS ) ) ) {
+      ESCCMD_tlm_emu_nb[i]++;
+    }
+    #else
+    ESCCMD_tlm_emu_nb[i]++;
+    #endif
   }
 }
 #endif
@@ -1081,12 +1078,11 @@ int ESCCMD_tic( void )  {
       for ( i = 0; i < ESCCMD_n; i++ )  {
         if ( ESCCMD_tlm[i] )  {
           ESCCMD_tlm_pend[i]++;
+          #ifdef ESCCMD_ESC_EMULATION
+          ESCCMD_emulate_tlm( i );
+          #endif
         }
       }
-
-      #ifdef ESCCMD_ESC_EMULATION
-      ESCCMD_emulate_tlm( );
-      #endif
     }
     
     // Inform caller that a clock tic occured
