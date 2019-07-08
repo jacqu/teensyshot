@@ -13,8 +13,8 @@
 #include "ESCCMD.h"
 
 // ESC emulation
-#define ESCCMD_ESC_EMULATION                                // Uncomment to activate ESC emulation
-//#define ESCCMD_ESC_EMU_PKT_LOSS                             // Uncomment to emulate packet loss
+//#define ESCCMD_ESC_EMULATION                              // Uncomment to activate ESC emulation
+#define ESCCMD_ESC_EMU_PKT_LOSS                             // Uncomment to emulate packet loss
 #define ESCCMD_ESC_FRACTION_PKTLOSS       300               // One out of x packets lost
 
 // Error handling
