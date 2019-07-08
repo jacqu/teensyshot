@@ -574,8 +574,8 @@ int ESCCMD_read_tlm_status( uint8_t i )  {
   if ( !( local_state & ESCCMD_STATE_ARMED ) )
     ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
 
-  // Check if telemetry is valid
-  if ( ESCCMD_tlm_valid[i] )  {
+  // Check if telemetry is valid and active
+  if ( ESCCMD_tlm_valid[i] && ESCCMD_tlm[i] )  {
     return 0;
   }
   else
@@ -1004,8 +1004,8 @@ int ESCCMD_tic( void )  {
         ESCCMD_tlm_lost_cnt[i]++;
       }
 
-      // Clear packet pending counter
-      ESCCMD_tlm_pend[i] = 0;
+      // Decrement packet pending counter
+      ESCCMD_tlm_pend[i]--;
     }
   }
   

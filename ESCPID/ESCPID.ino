@@ -203,6 +203,7 @@ void loop( ) {
     
       // Compute control signal only if telemetry is valid
       // In case of invalid telemetry, last control signal is sent
+      // If motor is stopped, don't update PID to avoid integral term windup
       if ( !ESCCMD_read_tlm_status( i ) ) {
       
         // Update measurement
@@ -227,6 +228,9 @@ void loop( ) {
       if ( ESCPID_comm_wd < ESCPID_COMM_WD_LEVEL ) {
         ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
         ESCPID_comm_wd++;
+      }
+      else {
+        AWPID_reset( );
       }
     }
   }

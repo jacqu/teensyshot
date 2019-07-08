@@ -69,24 +69,45 @@ void AWPID_init(    uint8_t n,
     AWPID_Min[i] =  Min[i];
     AWPID_Max[i] =  Max[i];
 
-    // Initialisation of the PID intrnal variables
-    AWPID_u0[i] =   0;
+    // Initialisation of the PID internal variables
+    AWPID_u0[i] =   0.0;
 
-    AWPID_e0[i] =   0;
-    AWPID_e1[i] =   0;
+    AWPID_e0[i] =   0.0;
+    AWPID_e1[i] =   0.0;
 
-    AWPID_ui0[i] =  0;
-    AWPID_ui1[i] =  0;
+    AWPID_ui0[i] =  0.0;
+    AWPID_ui1[i] =  0.0;
 
-    AWPID_ud0[i] =  0;
-    AWPID_ud1[i] =  0;
+    AWPID_ud0[i] =  0.0;
+    AWPID_ud1[i] =  0.0;
     }
 
   return;
   }
 
 //
-// Computation of the ith control signal
+//  Reset internal variables of the PID
+//
+void AWPID_reset( void )  {
+  int i;
+  
+  for ( i = 0; i < AWPID_n; i++ )  {
+    // Initialisation of the PID internal variables
+    AWPID_u0[i] =   0.0;
+
+    AWPID_e0[i] =   0.0;
+    AWPID_e1[i] =   0.0;
+
+    AWPID_ui0[i] =  0.0;
+    AWPID_ui1[i] =  0.0;
+
+    AWPID_ud0[i] =  0.0;
+    AWPID_ud1[i] =  0.0;
+  }
+}
+
+//
+//  Computation of the ith control signal
 //
 void AWPID_control( uint8_t i,
                     float Reference,
