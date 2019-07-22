@@ -357,6 +357,8 @@ int ESCCMD_start_timer( void )  {
     ESCCMD_tlm[i] = 0;
     ESCCMD_tlm_pend[i] = 0;
     ESCCMD_tlm_lost_cnt[i] = 0;
+    ESCCMD_CRC_errors[i] = 0;
+    ESCCMD_last_error[i]  = 0;
     ESCCMD_throttle_wd[i] = ESCCMD_THWD_LEVEL;
   }
 
@@ -1056,6 +1058,9 @@ int ESCCMD_tic( void )  {
         // Watchdog triggered on ESC number i
         ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
         ESCCMD_tlm[i] = 0;
+        ESCCMD_last_error[i] = 0;
+        ESCCMD_tlm_lost_cnt[i] = 0;
+        ESCCMD_CRC_errors[i] = 0;
         noInterrupts();
         ESCCMD_state[i] &= ~( ESCCMD_STATE_START );
         interrupts();
