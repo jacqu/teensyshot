@@ -881,6 +881,7 @@ int ESCCMD_extract_packet_data( uint8_t i )  {
     }
     
     // Flush UART incoming buffer
+    delayMicroseconds( ESCCMD_TLM_BYTE_TIME * 2 );
     ESCCMD_serial[i]->clear( );
     
     // Reset pending packet counter

@@ -31,6 +31,7 @@
 #define ESCCMD_THWD_LEVEL       250               // Maximum number of periods without throttle refresh
 
 #define ESCCMD_TLM_UART_SPEED   115200            // Baudrate of the telemetry serial transmission
+#define ESCCMD_TLM_BYTE_TIME    87                // Duration of one byte transmission (us)
 #define ESCCMD_TLM_LENGTH       10                // Number of bytes in the telemetry packet
 #define ESCCMD_TLM_MAX_PEND     1                 // Maximum number of telemetry packet pending
 #define ESCCMD_TLM_NB_POLES     14                // Number of motor poles
