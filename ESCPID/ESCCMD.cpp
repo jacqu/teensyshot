@@ -881,8 +881,11 @@ int ESCCMD_extract_packet_data( uint8_t i )  {
     }
     
     // Flush UART incoming buffer
-    delayMicroseconds( ESCCMD_TLM_BYTE_TIME * 2 );
-    ESCCMD_serial[i]->clear( );
+    // If ESC is transmitting, need to wait for some byte(s) to come in
+    do {
+      delayMicroseconds( ESCCMD_TLM_BYTE_TIME * 2 );
+      ESCCMD_serial[i]->clear( );
+    } while ( ESCCMD_serial[i]->available( ) );
     
     // Reset pending packet counter
     ESCCMD_tlm_pend[i] = 0;
