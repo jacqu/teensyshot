@@ -524,8 +524,11 @@ int ESCCMD_read_err( uint8_t i, int8_t *err )  {
   if ( i >= ESCCMD_n )
     return ESCCMD_ERROR_PARAM;
 
-
+  // Return error code
   *err = ESCCMD_last_error[i];
+  
+  // Reset error
+  ESCCMD_last_error[i] = 0;
 
   return 0;
 }

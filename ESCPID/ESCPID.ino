@@ -227,11 +227,15 @@ void loop( ) {
       // Send control signal if reference has been sufficiently refreshed
       if ( ESCPID_comm_wd < ESCPID_COMM_WD_LEVEL ) {
         ret = ESCCMD_throttle( i, (int16_t)ESCPID_Control[i] );
-        ESCPID_comm_wd++;
       }
       else {
         AWPID_reset( );
       }
+    }
+    
+    // Update watchdog
+    if ( ESCPID_comm_wd < ESCPID_COMM_WD_LEVEL )  {
+      ESCPID_comm_wd++;
     }
   }
 }
