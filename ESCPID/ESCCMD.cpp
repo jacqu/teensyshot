@@ -111,8 +111,9 @@ void ESCCMD_init( uint8_t n )  {
   DSHOT_init( ESCCMD_n );
 
   // Initialize telemetry UART channels
-  for ( i = 0; i < ESCCMD_n; i++ )
+  for ( i = 0; i < ESCCMD_n; i++ )  {
     ESCCMD_serial[i]->begin( ESCCMD_TLM_UART_SPEED );
+  }
 
   // Set the initialization flag
   ESCCMD_init_flag = 1;
@@ -351,7 +352,7 @@ int ESCCMD_start_timer( void )  {
       ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
   }
 
-  // Initialize ESC structure
+  // Initialize ESC structure and clear UART input buffer
   for ( i = 0; i < ESCCMD_n; i++ )  {
     ESCCMD_cmd[i] = DSHOT_CMD_MOTOR_STOP;
     ESCCMD_tlm[i] = 0;
@@ -360,6 +361,7 @@ int ESCCMD_start_timer( void )  {
     ESCCMD_CRC_errors[i] = 0;
     ESCCMD_last_error[i]  = 0;
     ESCCMD_throttle_wd[i] = ESCCMD_THWD_LEVEL;
+    ESCCMD_serial[i]->clear( );
   }
 
   ESCCMD_tic_pend = 0;
@@ -465,6 +467,16 @@ int ESCCMD_throttle( uint8_t i, int16_t throttle ) {
   }
 
   // Reset the throttle watchdog
+  if ( ESCCMD_throttle_wd[i] >= ESCCMD_THWD_LEVEL ) {
+    // If watchdog was previously triggered:
+    //  Clear UART input buffer
+    //  Also clear pending errors, pending packets...
+    ESCCMD_serial[i]->clear( );
+    ESCCMD_tlm_pend[i] = 0;
+    ESCCMD_tlm_lost_cnt[i] = 0;
+    ESCCMD_CRC_errors[i] = 0;
+    ESCCMD_last_error[i]  = 0;
+  }
   ESCCMD_throttle_wd[i] = 0;
 
   return 0;
@@ -527,7 +539,7 @@ int ESCCMD_read_err( uint8_t i, int8_t *err )  {
   // Return error code
   *err = ESCCMD_last_error[i];
   
-  // Reset error
+  // Clear error
   ESCCMD_last_error[i] = 0;
 
   return 0;
