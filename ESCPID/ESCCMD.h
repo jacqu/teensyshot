@@ -39,7 +39,7 @@
 #define ESCCMD_TLM_LENGTH       10                // Number of bytes in the telemetry packet
 #define ESCCMD_TLM_MAX_PEND     1                 // Maximum number of telemetry packet pending
 #define ESCCMD_TLM_NB_POLES     14                // Number of motor poles
-#define ESCCMD_TLM_MAX_TEMP     100               // Maximum ESC temperature (°C)
+#define ESCCMD_TLM_MAX_TEMP     80                // Maximum ESC temperature (°C)
 #define ESCCMD_TLM_MAX_VOLT     2500              // Maximum ESC voltage (0.01 V)
 #define ESCCMD_TLM_MAX_AMP      6000              // Maximum ESC current (0.01 A)
 #define ESCCMD_TLM_MAX_CRC_ERR  5                 // Maximum CRC errors (per ESCCMD_TLM_PER iterations)
