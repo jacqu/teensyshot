@@ -19,6 +19,10 @@
 #define ESCCMD_STATE_3D         2                 // Mask for the default/3D mode
 #define ESCCMD_STATE_START      4                 // Mask for the motor start/stop bit
 
+#define ESCCMD_ERROR_TEMP       1                 // Mask for error on temperature
+#define ESCCMD_ERROR_VOLT       2                 // Mask for error on voltage
+#define ESCCMD_ERROR_AMP        4                 // Mask for error on current
+
 #define ESCCMD_CMD_REPETITION   10                // Number of time commands have to be repeated to be acknowledged by ESC
 #define ESCCMD_CMD_ARMING_REP   25                // Number of command repetition to arm
 #define ESCCMD_CMD_DELAY        50                // Delay between two consecutive DSHOT transmissions (us)
@@ -36,6 +40,8 @@
 #define ESCCMD_TLM_MAX_PEND     1                 // Maximum number of telemetry packet pending
 #define ESCCMD_TLM_NB_POLES     14                // Number of motor poles
 #define ESCCMD_TLM_MAX_TEMP     100               // Maximum ESC temperature (°C)
+#define ESCCMD_TLM_MAX_VOLT     2500              // Maximum ESC voltage (0.01 V)
+#define ESCCMD_TLM_MAX_AMP      6000              // Maximum ESC current (0.01 A)
 #define ESCCMD_TLM_MAX_CRC_ERR  5                 // Maximum CRC errors (per ESCCMD_TLM_PER iterations)
 #define ESCCMD_TLM_MAX_PKT_LOSS 50                // Maximum packet loss (per ESCCMD_TLM_PER iterations)
 #define ESCCMD_TLM_PER          1000              // If 100, error thresholds are in percent     
@@ -52,7 +58,7 @@
 #define ESCCMD_ERROR_TLM_CRC    -5                // CRC error in telemetry packet
 #define ESCCMD_ERROR_TLM_INVAL  -6                // Invalid telemetry error
 #define ESCCMD_ERROR_TLM_PEND   -7                // Maximum number of pending telemetry packet reached
-#define ESCCMD_ERROR_TLM_TEMP   -8                // Maximum ESC temperature reached
+#define ESCCMD_ERROR_TLM_CORRUPTED   -8                // Tlm data probably corrupted
 #define ESCCMD_ERROR_TLM_CRCMAX -9                // Maximum allowed CRC errors reached
 #define ESCCMD_ERROR_TLM_LOST   -10               // Lost packet(s) detected
 

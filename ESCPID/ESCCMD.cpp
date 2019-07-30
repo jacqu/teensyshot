@@ -28,6 +28,7 @@ volatile uint8_t    ESCCMD_n;                               // Number of initial
 volatile uint8_t    ESCCMD_state[ESCCMD_MAX_ESC];           // Current state of the cmd subsystem
 uint16_t            ESCCMD_CRC_errors[ESCCMD_MAX_ESC];      // Overall number of CRC error since start
 int8_t              ESCCMD_last_error[ESCCMD_MAX_ESC];      // Last error code
+uint8_t             ESCCMD_corruption_error[ESCCMD_MAX_ESC];// Tlm data corruption error code (se mask above)
 uint16_t            ESCCMD_cmd[ESCCMD_MAX_ESC];             // Last command
 uint16_t            ESCCMD_throttle_wd[ESCCMD_MAX_ESC];     // Throttle watchdog counter
 uint8_t             ESCCMD_tlm_deg[ESCCMD_MAX_ESC];         // ESC temperature (°C)
@@ -94,6 +95,7 @@ void ESCCMD_init( uint8_t n )  {
     ESCCMD_state[i]       = 0;
     ESCCMD_CRC_errors[i]  = 0;
     ESCCMD_last_error[i]  = 0;
+    ESCCMD_corruption_error[i] = 0; 
     ESCCMD_cmd[i]         = 0;
     ESCCMD_throttle_wd[i] = 0;
     ESCCMD_tlm_deg[i]     = 0;
@@ -592,11 +594,13 @@ int ESCCMD_read_tlm_status( uint8_t i )  {
     ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
 
   // Check if telemetry is valid and active
-  if ( ESCCMD_tlm_valid[i] && ESCCMD_tlm[i] )  {
+  if ( ESCCMD_tlm_valid[i] && ESCCMD_tlm[i] && !ESCCMD_corruption_error[i] )  {
     return 0;
   }
-  else
+  else {
+    ESCCMD_corruption_error[i] = 0; 
     return ESCCMD_ERROR_TLM_INVAL;
+  }
 }
 
 //
@@ -914,8 +918,25 @@ int ESCCMD_extract_packet_data( uint8_t i )  {
     // Make some verifications on the telemetry
 
     // Check for overtheating of the ESC
+    // If the temperature is too high, it may be because the tlm data is corrupted 
     if ( ESCCMD_tlm_deg[i] >= ESCCMD_TLM_MAX_TEMP ) {
-      ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_TEMP;
+      ESCCMD_corruption_error[i] |= ESCCMD_ERROR_TEMP;
+    }
+
+    // Check for overvoltage
+    // If the voltage is too high, it may be because the tlm data is corrupted
+    if ( ESCCMD_tlm_volt[i] >= ESCCMD_TLM_MAX_VOLT ) {
+      ESCCMD_corruption_error[i] |= ESCCMD_ERROR_VOLT;
+    }
+    
+    // Check for overcurrent
+    // If current is too high, it may be because the tlm data is corrupted 
+    if ( ESCCMD_tlm_amp[i] >= ESCCMD_TLM_MAX_AMP ) {
+      ESCCMD_corruption_error[i] |= ESCCMD_ERROR_AMP;
+    }
+
+    if ( ESCCMD_corruption_error[i] ) {
+      ESCCMD_last_error[i] = ESCCMD_ERROR_TLM_CORRUPTED;
       return ESCCMD_last_error[i];
     }
   }
