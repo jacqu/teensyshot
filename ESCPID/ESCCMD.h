@@ -28,7 +28,7 @@
 #define ESCCMD_ESC_WATCHDOG     250000            // ESC arming watchdog timer (us)
 #define ESCCMD_TIMER_MAX_MISS   ( ESCCMD_ESC_WATCHDOG / ESCCMD_TIMER_PERIOD )
                                                   // Maximum missed tics before watchdog is triggered
-#define ESCCMD_THWD_LEVEL       250               // Maximum number of periods without throttle refresh
+#define ESCCMD_THWD_LEVEL       20                // Maximum number of periods without throttle refresh
 
 #define ESCCMD_TLM_UART_SPEED   115200            // Baudrate of the telemetry serial transmission
 #define ESCCMD_TLM_BYTE_TIME    87                // Duration of one byte transmission (us)
