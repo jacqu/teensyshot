@@ -67,7 +67,15 @@ int ESCPID_comm_update( void ) {
   
     // Clear incoming bytes counter
     in_cnt = 0;
-  
+    
+    // Look for a reset command
+    // If first ESC has 0xffff for PID and f gains, reset teensy
+    if (  ( Host_comm.PID_P[0] == ESCPID_RESET_GAIN ) &&
+          ( Host_comm.PID_I[0] == ESCPID_RESET_GAIN ) &&
+          ( Host_comm.PID_D[0] == ESCPID_RESET_GAIN ) &&
+          ( Host_comm.PID_f[0] == ESCPID_RESET_GAIN ) )
+      SCB_AIRCR = 0x05FA0004;
+    
     // Check the validity of the magic number
     if ( Host_comm.magic != ESCPID_COMM_MAGIC ) {
     

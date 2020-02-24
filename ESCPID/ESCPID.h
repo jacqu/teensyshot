@@ -21,6 +21,7 @@
 #define ESCPID_PID_ADAPT_GAIN     0.0001            // Range adaptation gain for PID coefficient
 
 #define ESCPID_COMM_MAGIC         0x43305735        // Magic number: "teensy35" in leet speech
+#define ESCPID_RESET_GAIN         0xffff            // PIDf gain value that triggers teensy reset
 #define ESCPID_COMM_WD_LEVEL      20                // Maximum number of periods without reference refresh
 
 #define ESCPID_ERROR_MAGIC        -1                // Magic number error code
