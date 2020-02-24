@@ -358,10 +358,14 @@ int DSHOT_send( uint16_t *cmd, uint8_t *tlm ) {
 
   // Start DMA by activating the clocks
   // Clocks are disabled again by the DMA ISRs
+  IMXRT_FLEXPWM2.MCTRL |= FLEXPWM_MCTRL_RUN(15); 
+  IMXRT_FLEXPWM1.MCTRL |= FLEXPWM_MCTRL_RUN(15); 
+  IMXRT_FLEXPWM4.MCTRL |= FLEXPWM_MCTRL_RUN(15); 
+  /*
   for ( i = 0; i < DSHOT_n; i++ ) {
     (*DSHOT_mods[i]).MCTRL |= FLEXPWM_MCTRL_RUN( 1 << DSHOT_sm[i] ); 
   }
-
+*/
 #else
 
   // Start DMA by activating the clock

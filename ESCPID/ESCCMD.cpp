@@ -107,13 +107,13 @@ void ESCCMD_init( uint8_t n )  {
     ESCCMD_tlm_lost_cnt[i]= 0;
   }
 
-  // Initialize DSHOT generation subsystem
-  DSHOT_init( ESCCMD_n );
-
   // Initialize telemetry UART channels
   for ( i = 0; i < ESCCMD_n; i++ )  {
     ESCCMD_serial[i]->begin( ESCCMD_TLM_UART_SPEED );
   }
+
+  // Initialize DSHOT generation subsystem
+  DSHOT_init( ESCCMD_n );
 
   // Set the initialization flag
   ESCCMD_init_flag = 1;
