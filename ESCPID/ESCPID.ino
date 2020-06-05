@@ -73,8 +73,14 @@ int ESCPID_comm_update( void ) {
     if (  ( Host_comm.PID_P[0] == ESCPID_RESET_GAIN ) &&
           ( Host_comm.PID_I[0] == ESCPID_RESET_GAIN ) &&
           ( Host_comm.PID_D[0] == ESCPID_RESET_GAIN ) &&
-          ( Host_comm.PID_f[0] == ESCPID_RESET_GAIN ) )
+          ( Host_comm.PID_f[0] == ESCPID_RESET_GAIN ) ) {
+      
+      // Give time to host to close serial port
+      delay( ESCPID_RESET_DELAY );
+
+      // Reset command
       SCB_AIRCR = 0x05FA0004;
+    }
     
     // Check the validity of the magic number
     if ( Host_comm.magic != ESCPID_COMM_MAGIC ) {
