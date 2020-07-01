@@ -7,6 +7,8 @@
  *  Date:     May 2019
  */
 
+#define AWPID_FILTERED_MES
+
 // Includes
 #include <Arduino.h>
 #include <math.h>
@@ -26,6 +28,9 @@ float   AWPID_ui0[AWPID_MAX_NB];      // Integral term
 float   AWPID_ui1[AWPID_MAX_NB];      // Last sample integral term
 float   AWPID_ud0[AWPID_MAX_NB];      // Derivative term
 float   AWPID_ud1[AWPID_MAX_NB];      // Last sample derivative term
+#ifdef AWPID_FILTERED_MES
+float   AWPID_me1[AWPID_MAX_NB];      // Last sample measurement
+#endif
 uint8_t AWPID_n = 0;                  // Number of initialized PIDs
 
 //
@@ -80,6 +85,10 @@ void AWPID_init(    uint8_t n,
 
     AWPID_ud0[i] =  0.0;
     AWPID_ud1[i] =  0.0;
+    
+    #ifdef AWPID_FILTERED_MES
+    AWPID_me1[i] =  0.0;
+    #endif
     }
 
   return;
@@ -103,6 +112,10 @@ void AWPID_reset( void )  {
 
     AWPID_ud0[i] =  0.0;
     AWPID_ud1[i] =  0.0;
+    
+    #ifdef AWPID_FILTERED_MES
+    AWPID_me1[i] =  0.0;
+    #endif
   }
 }
 
@@ -123,8 +136,14 @@ void AWPID_control( uint8_t i,
 
   // Computation of the derivative term
   AWPID_ud1[i] =  AWPID_ud0[i];
+  #ifdef AWPID_FILTERED_MES
+    AWPID_ud0[i] =  AWPID_f[i] * AWPID_ud1[i] -
+                    WPID_Kd[i] * ( Measurement - AWPID_me1[i] );
+    AWPID_me1[i] = Measurement;
+  #else
   AWPID_ud0[i] =  AWPID_f[i] * AWPID_ud1[i] +
                   AWPID_Kd[i] * ( AWPID_e0[i] - AWPID_e1[i] );
+  #endif
 
   // Integral term computation
 
