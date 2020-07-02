@@ -178,8 +178,11 @@ void setup() {
   // Arming ESCs
   ESCCMD_arm_all( );
   
-  // Switch 3D mode on
-  ESCCMD_3D_on( );
+  // Set spin direction
+  ESCCMD_spin_direction( ESCPID_SPIN_DIRECTION ); 
+
+  // Switch 3D mode off
+  ESCCMD_3D_off( );
 
   // Arming ESCs
   ESCCMD_arm_all( );

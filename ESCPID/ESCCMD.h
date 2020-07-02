@@ -95,6 +95,7 @@ void    ESCCMD_init( uint8_t );
 int     ESCCMD_arm_all( void );
 int     ESCCMD_3D_on( void );
 int     ESCCMD_3D_off( void );
+int     ESCCMD_spin_direction( uint8_t );
 int     ESCCMD_start_timer( void );
 int     ESCCMD_stop_timer( void );
 int     ESCCMD_throttle( uint8_t, int16_t );

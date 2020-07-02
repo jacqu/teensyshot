@@ -326,6 +326,91 @@ int ESCCMD_3D_off( void )  {
 }
 
 //
+//  Set spin direction
+//
+//  Input values: i-th LSB = 1 ==> spin direction 1
+//                i-th LSB = 0 ==> spin direction 2
+//
+//  Return values: see defines
+//
+int ESCCMD_spin_direction( uint8_t spin_direction ) {
+  static int i, k;
+
+  // Check if everything is initialized
+  if ( !ESCCMD_init_flag )
+    return ESCCMD_ERROR_INIT;
+  
+  // Check if timer is disabled
+  if ( ESCCMD_timer_flag )
+    return ESCCMD_ERROR_PARAM;
+
+  for ( i = 0; i < ESCCMD_n; i++ )  {
+    // Check if ESCs are stopped
+    if ( ESCCMD_state[i] & ESCCMD_STATE_START )
+      ESCCMD_ERROR( ESCCMD_ERROR_SEQ )
+  }
+
+  // Set spin direction
+  for ( i = 0; i < ESCCMD_n; i++ )  {
+    if ( spin_direction & ( 1 << i ) ) {
+      ESCCMD_cmd[i] = DSHOT_CMD_SPIN_DIRECTION_1;
+    } else {
+      ESCCMD_cmd[i] = DSHOT_CMD_SPIN_DIRECTION_2;
+    }
+    ESCCMD_tlm[i] = 1;
+  }
+
+  // Send command ESCCMD_CMD_REPETITION times
+  for ( i = 0; i < ESCCMD_CMD_REPETITION; i++ )  {
+
+    // Send DSHOT signal to all ESCs
+    if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) ) {
+      for ( k = 0; k < ESCCMD_n; k++ )
+        ESCCMD_last_error[k] = ESCCMD_ERROR_DSHOT;
+      return ESCCMD_ERROR_DSHOT;
+    }
+
+    // Wait some time
+    delayMicroseconds( ESCCMD_CMD_DELAY );
+  }
+
+  // Define save settings command
+  for ( i = 0; i < ESCCMD_n; i++ )  {
+    ESCCMD_cmd[i] = DSHOT_CMD_SAVE_SETTINGS;
+    ESCCMD_tlm[i] = 1;
+  }
+
+  // Send command ESCCMD_CMD_REPETITION times
+  for ( i = 0; i < ESCCMD_CMD_REPETITION; i++ )  {
+
+    // Send DSHOT signal to all ESCs
+    if ( DSHOT_send( ESCCMD_cmd, ESCCMD_tlm ) ) {
+      for ( k = 0; k < ESCCMD_n; k++ )
+        ESCCMD_last_error[k] = ESCCMD_ERROR_DSHOT;
+      return ESCCMD_ERROR_DSHOT;
+    }
+
+    // Wait some time
+    delayMicroseconds( ESCCMD_CMD_DELAY );
+  }
+
+  // Minimum delay before next command
+  delayMicroseconds( ESCCMD_CMD_SAVE_DELAY );
+
+  // Flush incoming serial buffers due to a transcient voltage
+  // appearing on Tx when saving, generating a 0xff serial byte
+  for ( i = 0; i < ESCCMD_n; i++ )
+    ESCCMD_serial[i]->clear( );
+
+  // ESC is disarmed after previous delay
+  for ( i = 0; i < ESCCMD_n; i++ )
+    ESCCMD_state[i] &= ~(ESCCMD_STATE_ARMED);
+
+  return 0;
+}
+
+
+//
 //  Start periodic loop. ESC should be armed.
 //
 //  Return values: see defines
