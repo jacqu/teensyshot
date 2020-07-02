@@ -138,7 +138,7 @@ void AWPID_control( uint8_t i,
   AWPID_ud1[i] =  AWPID_ud0[i];
   #ifdef AWPID_FILTERED_MES
     AWPID_ud0[i] =  AWPID_f[i] * AWPID_ud1[i] -
-                    WPID_Kd[i] * ( Measurement - AWPID_me1[i] );
+                    AWPID_Kd[i] * ( Measurement - AWPID_me1[i] );
     AWPID_me1[i] = Measurement;
   #else
   AWPID_ud0[i] =  AWPID_f[i] * AWPID_ud1[i] +
