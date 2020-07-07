@@ -30,6 +30,7 @@ float   AWPID_ud0[AWPID_MAX_NB];      // Derivative term
 float   AWPID_ud1[AWPID_MAX_NB];      // Last sample derivative term
 #ifdef AWPID_FILTERED_MES
 float   AWPID_me1[AWPID_MAX_NB];      // Last sample measurement
+uint8_t AWPID_minit[AWPID_MAX_NB];    // Init flag for mes history
 #endif
 uint8_t AWPID_n = 0;                  // Number of initialized PIDs
 
@@ -88,6 +89,7 @@ void AWPID_init(    uint8_t n,
     
     #ifdef AWPID_FILTERED_MES
     AWPID_me1[i] =  0.0;
+    AWPID_minit[i] = 0;
     #endif
     }
 
@@ -115,6 +117,7 @@ void AWPID_reset( void )  {
     
     #ifdef AWPID_FILTERED_MES
     AWPID_me1[i] =  0.0;
+    AWPID_minit[i] = 0;
     #endif
   }
 }
@@ -137,8 +140,12 @@ void AWPID_control( uint8_t i,
   // Computation of the derivative term
   AWPID_ud1[i] =  AWPID_ud0[i];
   #ifdef AWPID_FILTERED_MES
+    if ( AWPID_minit[i] == 0 )  {
+      AWPID_me1[i] = Measurement;
+      AWPID_minit[i] = 1;
+    }
     AWPID_ud0[i] =  AWPID_f[i] * AWPID_ud1[i] -
-                    WPID_Kd[i] * ( Measurement - AWPID_me1[i] );
+                    AWPID_Kd[i] * ( Measurement - AWPID_me1[i] );
     AWPID_me1[i] = Measurement;
   #else
   AWPID_ud0[i] =  AWPID_f[i] * AWPID_ud1[i] +
