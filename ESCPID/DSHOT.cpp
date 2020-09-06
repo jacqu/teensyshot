@@ -220,7 +220,7 @@ void DSHOT_init( int n ) {
   // DMAEN: FLEXPWM_SMDMAEN_VALDE to enable DMA
   // --- module specific registers ---
   // OUTEN: output enable for submodule n and PWM q FLEXPWM_OUTEN_PWMq_EN( 1 << n )
-  for ( i = 0; i < DSHOT_n; i++ ) {
+  for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ ) {
     (*DSHOT_mods[i]).SM[DSHOT_sm[i]].INIT = 0;
     (*DSHOT_mods[i]).SM[DSHOT_sm[i]].VAL0 = 0;
     (*DSHOT_mods[i]).SM[DSHOT_sm[i]].VAL1 = DSHOT_bit_length;
@@ -241,7 +241,7 @@ void DSHOT_init( int n ) {
 
   // Each DMA channel is linked to a unique eFlexPWM submodule
   // DMA channels are triggered by independant hardware events
-  for ( i = 0; i < DSHOT_n; i++ ) {
+  for ( i = 0; i < DSHOT_MAX_OUTPUTS; i++ ) {
     dma[i].sourceBuffer( DSHOT_dma_data[i], DSHOT_DMA_LENGTH * sizeof( uint16_t ) );
     if ( DSHOT_abx[i] == 2 ) {
       dma[i].destination( (uint16_t&) (*DSHOT_mods[i]).SM[DSHOT_sm[i]].VAL0 );
