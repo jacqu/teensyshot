@@ -147,7 +147,7 @@ volatile uint16_t   DSHOT_dma_data[DSHOT_MAX_OUTPUTS][DSHOT_DMA_LENGTH];
 #define DSHOT_DMA_interrupt_routine( DSHOT_CHANNEL ) \
 void DSHOT_DMA_interrupt_routine_ ## DSHOT_CHANNEL( void ) { \
   dma[DSHOT_CHANNEL].clearInterrupt( ); \
-  (*DSHOT_mods[DSHOT_CHANNEL]).MCTRL &= FLEXPWM_MCTRL_RUN( 1 << DSHOT_sm[DSHOT_CHANNEL] );  \
+  (*DSHOT_mods[DSHOT_CHANNEL]).MCTRL ^= FLEXPWM_MCTRL_RUN( 1 << DSHOT_sm[DSHOT_CHANNEL] );  \
 }
 
 DSHOT_DMA_interrupt_routine( 0 );
